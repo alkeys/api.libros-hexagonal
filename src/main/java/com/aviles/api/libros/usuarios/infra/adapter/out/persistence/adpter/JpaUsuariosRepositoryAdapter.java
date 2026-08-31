@@ -1,6 +1,8 @@
 package com.aviles.api.libros.usuarios.infra.adapter.out.persistence.adpter;
 
 import java.util.List;
+import java.util.UUID;
+
 import org.springframework.stereotype.Repository;
 
 import com.aviles.api.libros.usuarios.application.port.out.UsuarioRepositoryPort;
@@ -32,6 +34,33 @@ public class JpaUsuariosRepositoryAdapter  implements UsuarioRepositoryPort {
     }
 
 
+    @Override
+    public Usuario update(Usuario usuario, UUID id, String password) {
+        UsuarioEntity entity = toEntity(usuario);
+        entity.setId(id);
+        //verificar si la contraseña es la misma que la que se tiene en la 
+        // base de datos para poder actualizar el usuario
+        if(!entity.getContrasenaHash().equals(password)){
+            throw new IllegalArgumentException("La contraseña proporcionada no coincide con la contraseña actual del usuario.");
+        }
+        UsuarioEntity updatedEntity = springDataUsuariosRepository.save(entity);
+        return toDomain(updatedEntity);
+    }
+
+
+    @Override
+    public Usuario findById(UUID id) {
+        return springDataUsuariosRepository.findById(id)
+                .map(this::toDomain)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado con el ID: " + id));
+    }
+
+
+
+
+
+
+
 
 
     private Usuario toDomain(UsuarioEntity entity) {
@@ -46,8 +75,12 @@ public class JpaUsuariosRepositoryAdapter  implements UsuarioRepositoryPort {
     }
 
 private UsuarioEntity toEntity(Usuario usuario) {
+    UUID id = usuario.id() != null
+            ? UUID.fromString(usuario.id())
+            : null;
+
     return new UsuarioEntity(
-        null,
+        id,
         usuario.nombre_usuario().getNombre(),
         usuario.correo().getCorreo(),
         usuario.contrasena_hash().getContrasena(),

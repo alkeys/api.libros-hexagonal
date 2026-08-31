@@ -1,17 +1,21 @@
 package com.aviles.api.libros.usuarios.infra.adapter.in.web;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.aviles.api.libros.usuarios.application.port.in.CreateUserCase;
 import com.aviles.api.libros.usuarios.application.port.in.GetAlluserCase;
+import com.aviles.api.libros.usuarios.application.port.in.UpdateUserCase;
 import com.aviles.api.libros.usuarios.domain.Usuario;
 import com.aviles.api.libros.usuarios.domain.values.Contrasema;
 import com.aviles.api.libros.usuarios.domain.values.Correo;
@@ -25,7 +29,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1/usuarios")
@@ -33,10 +36,13 @@ import jakarta.validation.Valid;
 public class UsuarioController {
     private final CreateUserCase createUserCase;
     private final GetAlluserCase getAlluserCase;
+    private final UpdateUserCase updateUserCase;
 
-    public UsuarioController(CreateUserCase createUserCase, GetAlluserCase getAlluserCase) {
+    public UsuarioController(CreateUserCase createUserCase, GetAlluserCase getAlluserCase, 
+        UpdateUserCase updateUserCase) {
         this.createUserCase = createUserCase;
         this.getAlluserCase = getAlluserCase;
+        this.updateUserCase = updateUserCase;
     }
 
 
@@ -75,14 +81,24 @@ public class UsuarioController {
 
 
 
+
+    /**
+     * Actualiza un usuario existente en el sistema.
+     */
+    @Operation(summary = "Actualizar un usuario", description = "Modifica los datos de un usuario existente en el sistema")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Usuario actualizado correctamente", content = @Content(schema = @Schema(implementation = UsuariosReponse.class))),
+            @ApiResponse(responseCode = "404", description = "Usuario no encontrado", content = @Content())
+    })
+    @PutMapping("/{id}")
+    public UsuariosReponse updateUser(@PathVariable String id, @RequestBody UsuariosRequest request, @RequestParam String password) {
+        // Lógica para actualizar un usuario utilizando updateUserCase
+        Usuario usuario = updateUserCase.updateUser(toDomain(request),UUID.fromString(id),password);
+        return toReponse(usuario);
+    }
+
+
 private Usuario toDomain(UsuariosRequest request) {
-
-    System.out.println("========== REQUEST ==========");
-    System.out.println("Nombre: [" + request.nombre_usuario() + "]");
-    System.out.println("Correo: [" + request.correo() + "]");
-    System.out.println("Password: [" + request.contrasena_hash() + "]");
-    System.out.println("=============================");
-
     return new Usuario(
         null,
         new Nombre(request.nombre_usuario()),

@@ -19,6 +19,7 @@ CREATE TABLE usuarios (
     fecha_creacion TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
+
     CONSTRAINT uq_usuarios_nombre_usuario
         UNIQUE (nombre_usuario),
 
@@ -47,7 +48,7 @@ CREATE TABLE libros (
 
     fecha_creacion TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
+    cantidad integer NOT NULL DEFAULT 0,
     CONSTRAINT ck_libros_titulo
         CHECK (btrim(titulo) <> ''),
 

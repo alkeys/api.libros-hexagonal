@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="&#x1f4da; Tests de createLibro" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-08-31T22:42:05.076Z" hostname="avilespro" time="0.014">
+  <properties/>
+  <testcase name="Debería propagar error cuando el repositorio falla" classname="com.aviles.api.libros.libros.application.service.LibrosServiceTest$CreateLibroTests" time="0.005"/>
+  <testcase name="Debería crear un libro con cantidad 0" classname="com.aviles.api.libros.libros.application.service.LibrosServiceTest$CreateLibroTests" time="0.004"/>
+  <testcase name="Debería crear un libro correctamente" classname="com.aviles.api.libros.libros.application.service.LibrosServiceTest$CreateLibroTests" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
