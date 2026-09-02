@@ -2,7 +2,7 @@ services:
   postgres:
     image: 'postgres:latest'
     environment:
-      - 'POSTGRES_DB=libros'
+      - 'POSTGRES_DB=sistema_escolar'
       - 'POSTGRES_PASSWORD=admin'
       - 'POSTGRES_USER=admin'
     ports:
