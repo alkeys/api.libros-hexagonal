@@ -1,0 +1,212 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Mis Notas" active="mis-notas">
+  <div class="fade-in space-y-6">
+    <!-- Cabecera de bienvenida -->
+    <div class="card relative overflow-hidden">
+      <div class="pointer-events-none absolute -top-16 -right-16 size-56 rounded-full bg-gradient-to-br from-brand-500/15 to-flare-500/15 blur-2xl"></div>
+      <div class="relative flex flex-wrap items-center justify-between gap-4 px-6 py-6">
+        <div>
+          <p class="text-xs font-bold tracking-widest text-brand-600 uppercase">Portal del estudiante</p>
+          <h2 class="mt-1 text-2xl font-extrabold text-ink">Mis calificaciones</h2>
+          <p class="mt-1 text-sm text-ink-soft" id="portal-name">Cargando tu información…</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="rounded-2xl bg-white px-5 py-3 text-center shadow-sm ring-1 ring-slate-100">
+            <p class="text-[11px] font-bold tracking-wider text-ink-soft uppercase">Promedio general</p>
+            <p class="text-2xl font-extrabold text-ink" id="avg-label">—</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="portal-body"></div>
+  </div>
+</Layout>
+
+<script>
+  import { esc, badge, toast } from '../lib/ui';
+  import { apiGet } from '../lib/api';
+  import { getSession } from '../lib/session';
+
+  const session = getSession();
+  const idEstudiante = session?.idEstudiante;
+  const portalName = document.getElementById('portal-name');
+  const avgLabel = document.getElementById('avg-label');
+  const body = document.getElementById('portal-body');
+
+  if (portalName && session) {
+    portalName.textContent = `Hola, ${session.username} — aquí verás las notas de tus evaluaciones.`;
+  }
+
+  // Escala de color según la nota (0-10)
+  function notaColor(notaEscala) {
+    if (notaEscala == null) return 'bg-slate-100 text-slate-500';
+    if (notaEscala >= 7) return 'bg-emerald-50 text-emerald-700';
+    if (notaEscala >= 6) return 'bg-amber-50 text-amber-700';
+    return 'bg-rose-50 text-rose-600';
+  }
+
+  function escala10(nota, notaMax) {
+    if (nota == null) return null;
+    const max = Number(notaMax) || 10;
+    return Math.round((Number(nota) / max) * 100) / 10;
+  }
+
+  async function render() {
+    if (!idEstudiante) {
+      body.innerHTML = `
+        <div class="card px-6 py-10 text-center">
+          <p class="text-sm font-semibold text-ink-soft">Tu cuenta no está vinculada a un estudiante. Pide al administrador que la asocie.</p>
+        </div>`;
+      return;
+    }
+
+    body.innerHTML = Array.from({ length: 3 }, () => '<div class="card p-6"><div class="skeleton h-5 w-48"></div><div class="skeleton mt-4 h-16 w-full"></div></div>').join('');
+
+    try {
+      const [notas, asignaciones, materias, grupos, profesores] = await Promise.all([
+        apiGet(`/evaluaciones/estudiante/${idEstudiante}/calificaciones`),
+        apiGet('/horarios/asignaciones').catch(() => []),
+        apiGet('/materias').catch(() => []),
+        apiGet('/grupos').catch(() => []),
+        apiGet('/profesores').catch(() => []),
+      ]);
+
+      const materiaDe = (idAsig) => {
+        const a = (asignaciones || []).find((x) => x.id === idAsig);
+        if (!a) return null;
+        const m = (materias || []).find((x) => x.id === a.idMateria);
+        const g = (grupos || []).find((x) => x.id === a.idGrupo);
+        const p = (profesores || []).find((x) => x.id === a.idProfesor);
+        return {
+          idAsignacion: idAsig,
+          materia: m ? m.nombreMateria : `Materia #${a.idMateria}`,
+          grupo: g ? g.nombre : `Grupo #${a.idGrupo}`,
+          profesor: p ? `${p.nombres} ${p.apellidos}` : null,
+        };
+      };
+
+      // Agrupar notas por asignación
+      const porMateria = new Map();
+      let totalPonderado = 0;
+      let totalPeso = 0;
+
+      for (const n of notas || []) {
+        const info = materiaDe(n.idAsignacion) || { idAsignacion: n.idAsignacion, materia: `Asignación #${n.idAsignacion}`, grupo: '', profesor: null };
+        if (!porMateria.has(info.idAsignacion)) porMateria.set(info.idAsignacion, { ...info, notas: [] });
+        porMateria.get(info.idAsignacion).notas.push(n);
+
+        const escala = escala10(n.notaObtenida, n.notaMaxima);
+        const peso = Number(n.porcentaje) || 0;
+        if (escala != null && peso > 0) {
+          totalPonderado += escala * peso;
+          totalPeso += peso;
+        }
+      }
+
+      const promedio = totalPeso > 0 ? (totalPonderado / totalPeso).toFixed(1) : '—';
+      if (avgLabel) {
+        avgLabel.textContent = promedio;
+        avgLabel.className = `text-2xl font-extrabold ${promedio !== '—' ? (Number(promedio) >= 7 ? 'text-emerald-600' : Number(promedio) >= 6 ? 'text-amber-600' : 'text-rose-600') : 'text-ink'}`;
+      }
+
+      const totalNotas = (notas || []).length;
+      const materiasCon = porMateria.size;
+
+      const cards = `
+        <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div class="card px-5 py-4"><p class="text-[11px] font-bold tracking-wider text-ink-soft uppercase">Evaluaciones</p><p class="mt-1 text-2xl font-extrabold text-ink">${totalNotas}</p></div>
+          <div class="card px-5 py-4"><p class="text-[11px] font-bold tracking-wider text-ink-soft uppercase">Materias</p><p class="mt-1 text-2xl font-extrabold text-ink">${materiasCon}</p></div>
+          <div class="card px-5 py-4"><p class="text-[11px] font-bold tracking-wider text-ink-soft uppercase">Escala</p><p class="mt-1 text-2xl font-extrabold text-ink">0 – 10</p></div>
+        </div>`;
+
+      if (!notas || !notas.length) {
+        body.innerHTML = `
+          ${cards}
+          <div class="card mt-6 flex flex-col items-center gap-3 px-6 py-14 text-center">
+            <div class="flex size-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-400">
+              <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <p class="text-sm font-semibold text-ink-soft">Aún no tienes calificaciones registradas.</p>
+            <p class="max-w-sm text-xs text-ink-soft">Cuando tus profesores registren notas, aparecerán aquí.</p>
+          </div>`;
+        return;
+      }
+
+      const secciones = [...porMateria.values()].map((item) => {
+        const filas = item.notas
+          .map((n) => {
+            const escala = escala10(n.notaObtenida, n.notaMaxima);
+            return `
+              <tr class="border-t border-slate-50 transition hover:bg-brand-50/40">
+                <td class="td">
+                  <p class="font-bold text-ink">${esc(n.nombreEvaluacion)}</p>
+                  ${n.descripcionEvaluacion ? `<p class="text-xs text-ink-soft">${esc(n.descripcionEvaluacion)}</p>` : ''}
+                </td>
+                <td class="td hidden sm:table-cell">${fmtDate2(n.fechaEvaluacion)}</td>
+                <td class="td hidden md:table-cell"><span class="text-ink-soft">${esc(n.porcentaje ?? '—')}%</span></td>
+                <td class="td text-right">
+                  <span class="inline-flex min-w-14 items-center justify-center rounded-lg px-2.5 py-1 text-sm font-extrabold ${notaColor(escala)}">
+                    ${n.notaObtenida != null ? `${Number(n.notaObtenida).toFixed(1)}` : '—'}
+                  </span>
+                </td>
+              </tr>`;
+          })
+          .join('');
+
+        // Promedio simple de la materia
+        const escalas = item.notas.map((n) => escala10(n.notaObtenida, n.notaMaxima)).filter((x) => x != null);
+        const promMat = escalas.length ? (escalas.reduce((a, b) => a + b, 0) / escalas.length).toFixed(1) : '—';
+
+        return `
+          <div class="card overflow-hidden">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-4">
+              <div class="flex items-center gap-3">
+                <div class="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-flare-500 text-sm font-extrabold text-white shadow-md shadow-brand-500/25">
+                  ${esc((item.materia || '?').slice(0, 2).toUpperCase())}
+                </div>
+                <div>
+                  <p class="font-extrabold text-ink">${esc(item.materia)}</p>
+                  <p class="text-xs text-ink-soft">
+                    ${item.grupo ? `${esc(item.grupo)} · ` : ''}${item.profesor ? `Prof. ${esc(item.profesor)}` : ''}
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="badge ring-1 ring-inset bg-slate-100 text-slate-600 ring-slate-500/20">${item.notas.length} eval.</span>
+                <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-extrabold ${notaColor(Number(promMat))}">${promMat}</span>
+              </div>
+            </div>
+            <div class="overflow-x-auto px-2 pb-2">
+              <table class="w-full min-w-[520px]">
+                <thead><tr>
+                  <th class="th">Evaluación</th><th class="th hidden sm:table-cell">Fecha</th><th class="th hidden md:table-cell">Peso</th><th class="th text-right">Nota</th>
+                </tr></thead>
+                <tbody>${filas}</tbody>
+              </table>
+            </div>
+          </div>`;
+      }).join('');
+
+      body.innerHTML = `${cards}<div class="mt-6 space-y-6">${secciones}</div>`;
+    } catch (err) {
+      body.innerHTML = `
+        <div class="card px-6 py-12 text-center">
+          <p class="text-sm font-semibold text-rose-600">No se pudieron cargar tus notas.</p>
+          <p class="mt-1 text-xs text-ink-soft">${esc(err.message)}</p>
+        </div>`;
+    }
+  }
+
+  function fmtDate2(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return esc(iso);
+    return d.toLocaleDateString('es-SV', { day: '2-digit', month: 'short' });
+  }
+
+  render();
+</script>

@@ -1,6 +1,7 @@
 package com.aviles.api.escuela.niveles.infra.adapter.out.persistence;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
@@ -34,6 +35,16 @@ public class JpaNivelesAdapter implements NivelRepositoryPort, GradoRepositoryPo
     }
 
     @Override
+    public Optional<NivelEducativo> findNivelById(Long id) {
+        return nivelRepo.findById(id).map(this::toDomainNivel);
+    }
+
+    @Override
+    public void deleteNivelById(Long id) {
+        nivelRepo.deleteById(id);
+    }
+
+    @Override
     public Grado save(Grado grado) {
         return toDomainGrado(gradoRepo.save(toJpaGrado(grado)));
     }
@@ -41,6 +52,16 @@ public class JpaNivelesAdapter implements NivelRepositoryPort, GradoRepositoryPo
     @Override
     public List<Grado> findAllGrados() {
         return gradoRepo.findAll().stream().map(this::toDomainGrado).collect(Collectors.toList());
+    }
+
+    @Override
+    public Optional<Grado> findGradoById(Long id) {
+        return gradoRepo.findById(id).map(this::toDomainGrado);
+    }
+
+    @Override
+    public void deleteGradoById(Long id) {
+        gradoRepo.deleteById(id);
     }
 
     @Override
@@ -56,6 +77,16 @@ public class JpaNivelesAdapter implements NivelRepositoryPort, GradoRepositoryPo
     @Override
     public List<Seccion> findAllSecciones() {
         return seccionRepo.findAll().stream().map(this::toDomainSeccion).collect(Collectors.toList());
+    }
+
+    @Override
+    public Optional<Seccion> findSeccionById(Long id) {
+        return seccionRepo.findById(id).map(this::toDomainSeccion);
+    }
+
+    @Override
+    public void deleteSeccionById(Long id) {
+        seccionRepo.deleteById(id);
     }
 
     private NivelEducativo toDomainNivel(JpaNivelEducativo j) {

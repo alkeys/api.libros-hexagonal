@@ -1,6 +1,7 @@
 package com.aviles.api.escuela.evaluaciones.infra.adapter.out.persistence;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import com.aviles.api.escuela.evaluaciones.application.port.out.*;
@@ -26,9 +27,23 @@ public class JpaEvaluacionAdapter implements EvaluacionRepositoryPort, Calificac
     @Override
     public List<Evaluacion> findAllEvaluaciones() { return evaluacionRepo.findAll().stream().map(this::toDomainEvaluacion).collect(Collectors.toList()); }
     @Override
+    public Optional<Evaluacion> findEvaluacionById(Long id) { return evaluacionRepo.findById(id).map(this::toDomainEvaluacion); }
+    @Override
+    public void deleteEvaluacionById(Long id) { evaluacionRepo.deleteById(id); }
+    @Override
     public Calificacion save(Calificacion c) { return toDomainCalificacion(calificacionRepo.save(toJpaCalificacion(c))); }
     @Override
     public List<Calificacion> findByEvaluacion(Id idEvaluacion) { return calificacionRepo.findByIdEvaluacion(idEvaluacion.getValue()).stream().map(this::toDomainCalificacion).collect(Collectors.toList()); }
+    @Override
+    public List<Calificacion> findByEstudiante(Id idEstudiante) { return calificacionRepo.findByIdEstudiante(idEstudiante.getValue()).stream().map(this::toDomainCalificacion).collect(Collectors.toList()); }
+    @Override
+    public Optional<Calificacion> findByEvaluacionAndEstudiante(Id idEvaluacion, Id idEstudiante) {
+        return calificacionRepo.findByIdEvaluacionAndIdEstudiante(idEvaluacion.getValue(), idEstudiante.getValue()).map(this::toDomainCalificacion);
+    }
+    @Override
+    public Optional<Calificacion> findCalificacionById(Long id) { return calificacionRepo.findById(id).map(this::toDomainCalificacion); }
+    @Override
+    public void deleteCalificacionById(Long id) { calificacionRepo.deleteById(id); }
     @Override
     public NotaFinal save(NotaFinal n) { return toDomainNotaFinal(notaFinalRepo.save(toJpaNotaFinal(n))); }
     @Override

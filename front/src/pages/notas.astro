@@ -1,0 +1,296 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Notas" active="notas">
+  <div class="fade-in space-y-6">
+    <!-- Selector de asignación y evaluación -->
+    <div class="card overflow-hidden">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+        <div>
+          <h2 class="text-xl font-extrabold text-ink">Captura de Notas</h2>
+          <p class="mt-0.5 text-sm text-ink-soft">
+            Selecciona tu clase y evaluación para calificar a los estudiantes del grupo.
+          </p>
+        </div>
+        <div id="prof-badge" class="hidden items-center gap-2 rounded-full bg-emerald-50 px-3.5 py-1.5 text-xs font-bold text-emerald-700 ring-1 ring-emerald-600/20"></div>
+      </div>
+      <div class="grid grid-cols-1 gap-4 px-6 py-5 sm:grid-cols-2">
+        <div>
+          <label class="label">Asignación (clase) *</label>
+          <select id="sel-asignacion" class="input" required>
+            <option value="">Cargando clases…</option>
+          </select>
+        </div>
+        <div>
+          <label class="label">Evaluación *</label>
+          <select id="sel-evaluacion" class="input" required>
+            <option value="">Primero elige la clase</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla de calificaciones -->
+    <div class="card overflow-hidden">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+        <div>
+          <h2 class="text-xl font-extrabold text-ink" id="grade-title">Estudiantes</h2>
+          <p class="mt-0.5 text-sm text-ink-soft" id="grade-subtitle">Elige una asignación y evaluación.</p>
+        </div>
+        <button id="btn-save-all" class="btn-primary hidden">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+          Guardar todas
+        </button>
+      </div>
+      <div id="grade-body" class="px-6 py-5"></div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { esc, toast } from '../lib/ui';
+  import { apiGet, apiPost } from '../lib/api';
+  import { getSession } from '../lib/session';
+
+  const session = getSession();
+
+  const selAsig = document.getElementById('sel-asignacion');
+  const selEval = document.getElementById('sel-evaluacion');
+  const gradeBody = document.getElementById('grade-body');
+  const gradeTitle = document.getElementById('grade-title');
+  const gradeSub = document.getElementById('grade-subtitle');
+  const btnSaveAll = document.getElementById('btn-save-all');
+  const profBadge = document.getElementById('prof-badge');
+
+  let asignaciones = [];
+  let evaluaciones = [];
+  let estudiantes = [];
+  let grupos = [];
+  let materias = [];
+  let profesores = [];
+  let matriculaPorGrupo = new Map();
+  let calificacionesEval = new Map(); // idEstudiante -> calificacion
+
+  async function load() {
+    try {
+      const [asig, evals, est, gr, mat, prof] = await Promise.all([
+        apiGet('/horarios/asignaciones'),
+        apiGet('/evaluaciones'),
+        apiGet('/estudiantes'),
+        apiGet('/grupos'),
+        apiGet('/materias'),
+        apiGet('/profesores'),
+      ]);
+      asignaciones = asig || [];
+      evaluaciones = evals || [];
+      estudiantes = est || [];
+      grupos = gr || [];
+      materias = mat || [];
+      profesores = prof || [];
+
+      // Si el usuario es profesor, filtrar sus asignaciones
+      if (session?.idProfesor) {
+        const misClases = asignaciones.filter((a) => a.idProfesor === session.idProfesor);
+        if (misClases.length) asignaciones = misClases;
+        profBadge.classList.remove('hidden');
+        profBadge.innerHTML = `🧑‍🏫 Mostrando tus clases`;
+      }
+
+      renderAsignaciones();
+    } catch (err) {
+      selAsig.innerHTML = `<option value="">Error cargando datos</option>`;
+      toast(err.message || 'No se pudo conectar con la API', 'error');
+    }
+  }
+
+  function nombreGrupo(id) {
+    const g = grupos.find((x) => x.id === id);
+    return g ? g.nombre : `Grupo #${id}`;
+  }
+  function nombreMateria(id) {
+    const m = materias.find((x) => x.id === id);
+    return m ? m.nombreMateria : `Materia #${id}`;
+  }
+  function nombreProfesor(id) {
+    const p = profesores.find((x) => x.id === id);
+    return p ? `${p.nombres} ${p.apellidos}` : `Prof. #${id}`;
+  }
+  function nombreEstudiante(id) {
+    const e = estudiantes.find((x) => x.id === id);
+    return e ? `${e.nombres} ${e.apellidos}` : `Estudiante #${id}`;
+  }
+
+  function renderAsignaciones() {
+    selAsig.innerHTML =
+      `<option value="">— Selecciona una clase —</option>` +
+      asignaciones
+        .map((a) => `<option value="${esc(a.id)}">${esc(nombreMateria(a.idMateria))} · ${esc(nombreGrupo(a.idGrupo))} · ${esc(nombreProfesor(a.idProfesor))}</option>`)
+        .join('');
+  }
+
+  function renderEvaluaciones() {
+    const idAsig = Number(selAsig.value);
+    const evals = evaluaciones.filter((e) => e.idAsignacion === idAsig);
+    selEval.innerHTML =
+      `<option value="">— Selecciona una evaluación —</option>` +
+      evals
+        .map((e) => `<option value="${esc(e.id)}">${esc(e.nombre)} (${esc(e.porcentaje ?? '—')}%)</option>`)
+        .join('');
+    gradeTitle.textContent = 'Estudiantes';
+    gradeSub.textContent = evals.length ? 'Elige una evaluación para capturar notas.' : 'Esta clase aún no tiene evaluaciones. Créalas desde la página Evaluaciones.';
+    gradeBody.innerHTML = '';
+    btnSaveAll.classList.add('hidden');
+  }
+
+  async function loadGrupo(idGrupo) {
+    if (!matriculaPorGrupo.has(idGrupo)) {
+      try {
+        const mats = await apiGet(`/estudiantes/matriculas/grupo/${idGrupo}`);
+        matriculaPorGrupo.set(idGrupo, mats || []);
+      } catch {
+        matriculaPorGrupo.set(idGrupo, []);
+      }
+    }
+    return matriculaPorGrupo.get(idGrupo);
+  }
+
+  async function renderGradeTable() {
+    const idAsig = Number(selAsig.value);
+    const idEval = Number(selEval.value);
+    if (!idAsig || !idEval) return;
+
+    const asignacion = asignaciones.find((a) => a.id === idAsig);
+    if (!asignacion) return;
+
+    const evaluacion = evaluaciones.find((e) => e.id === idEval);
+    gradeTitle.textContent = `Notas · ${evaluacion?.nombre || ''}`;
+    gradeSub.textContent = `${nombreMateria(asignacion.idMateria)} · ${nombreGrupo(asignacion.idGrupo)} · ${nombreProfesor(asignacion.idProfesor)}`;
+    btnSaveAll.classList.remove('hidden');
+
+    gradeBody.innerHTML = '<div class="skeleton mb-3 h-10 w-full"></div><div class="skeleton h-10 w-full"></div>';
+
+    // Cargar calificaciones existentes y alumnos del grupo en paralelo
+    try {
+      const [califs, mats] = await Promise.all([
+        apiGet(`/evaluaciones/${idEval}/calificaciones`),
+        loadGrupo(asignacion.idGrupo),
+      ]);
+      calificacionesEval = new Map((califs || []).map((c) => [c.idEstudiante, c]));
+
+      const alumnos = (mats || []).map((m) => m.idEstudiante);
+      const unicos = [...new Set(alumnos)];
+
+      if (!unicos.length) {
+        gradeBody.innerHTML = `<p class="text-sm font-semibold text-ink-soft">Este grupo no tiene estudiantes matriculados.</p>`;
+        btnSaveAll.classList.add('hidden');
+        return;
+      }
+
+      const notaMax = Number(evaluacion?.notaMaxima ?? 10) || 10;
+      const rows = unicos
+        .map((idEst, i) => {
+          const cal = calificacionesEval.get(idEst);
+          const nota = cal?.notaObtenida != null ? cal.notaObtenida : '';
+          const obs = cal?.observacion || '';
+          return `
+          <tr class="border-t border-slate-50 transition hover:bg-brand-50/40">
+            <td class="td">
+              <div class="flex items-center gap-3">
+                <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-flare-500 text-xs font-extrabold text-white">${esc((nombreEstudiante(idEst).match(/[A-ZÁÉÍÓÚÑ]/g) || ['?']).slice(0, 2).join(''))}</div>
+                <div>
+                  <p class="font-bold text-ink">${esc(nombreEstudiante(idEst))}</p>
+                  <p class="text-xs text-ink-soft">ID ${esc(idEst)}</p>
+                </div>
+              </div>
+            </td>
+            <td class="td">
+              <input type="number" min="0" max="${notaMax}" step="0.5" class="input w-28" value="${esc(nota)}" placeholder="Nota" data-nota="${esc(idEst)}" />
+            </td>
+            <td class="td">
+              <input type="text" class="input" value="${esc(obs)}" placeholder="Observación (opcional)" data-obs="${esc(idEst)}" />
+            </td>
+          </tr>`;
+        })
+        .join('');
+
+      gradeBody.innerHTML = `
+        <div class="overflow-x-auto rounded-xl border border-slate-100">
+          <table class="w-full min-w-[560px]">
+            <thead><tr class="bg-slate-50/80">
+              <th class="th">Estudiante</th>
+              <th class="th">Nota (0–${notaMax})</th>
+              <th class="th">Observación</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        <p class="mt-3 text-xs font-semibold text-ink-soft">${unicos.length} estudiante${unicos.length !== 1 ? 's' : ''} · Guarda cada nota o usa «Guardar todas».</p>`;
+    } catch (err) {
+      gradeBody.innerHTML = `<p class="text-sm font-semibold text-rose-600">No se pudo cargar: ${esc(err.message)}</p>`;
+    }
+  }
+
+  async function guardar(idEstudiante, { silencioso = false } = {}) {
+    const idEval = Number(selEval.value);
+    const notaInput = gradeBody.querySelector(`[data-nota="${idEstudiante}"]`);
+    const obsInput = gradeBody.querySelector(`[data-obs="${idEstudiante}"]`);
+    if (!notaInput) return;
+
+    const notaRaw = notaInput.value.trim();
+    const evaluacion = evaluaciones.find((e) => e.id === idEval);
+    const notaMax = Number(evaluacion?.notaMaxima ?? 10) || 10;
+    let nota = notaRaw === '' ? null : Number(notaRaw);
+    if (nota !== null && !Number.isFinite(nota)) nota = null;
+    if (nota !== null) nota = Math.min(Math.max(nota, 0), notaMax);
+    const payload = {
+      idEvaluacion: idEval,
+      idEstudiante: Number(idEstudiante),
+      notaObtenida: nota,
+      observacion: obsInput?.value.trim() || null,
+    };
+    if (notaInput.value.trim() !== '' && Number(notaInput.value) !== nota) {
+      notaInput.value = nota;
+    }
+
+    try {
+      await apiPost('/evaluaciones/calificaciones', payload);
+      if (!silencioso) toast('Nota guardada', 'success');
+    } catch (err) {
+      if (!silencioso) toast(err.message || 'No se pudo guardar la nota', 'error');
+      throw err;
+    }
+  }
+
+  selAsig.addEventListener('change', () => {
+    renderEvaluaciones();
+    gradeBody.innerHTML = '';
+    btnSaveAll.classList.add('hidden');
+  });
+  selEval.addEventListener('change', renderGradeTable);
+
+  btnSaveAll.addEventListener('click', async () => {
+    const inputs = [...gradeBody.querySelectorAll('[data-nota]')];
+    if (!inputs.length) return;
+    btnSaveAll.disabled = true;
+    btnSaveAll.textContent = 'Guardando…';
+    let ok = 0;
+    try {
+      for (const inp of inputs) {
+        await guardar(inp.dataset.nota, { silencioso: true });
+        ok++;
+      }
+      toast(`Se guardaron ${ok} nota${ok !== 1 ? 's' : ''}`, 'success');
+      renderGradeTable();
+    } catch (err) {
+      toast(err.message || 'Error al guardar', 'error');
+    } finally {
+      btnSaveAll.disabled = false;
+      btnSaveAll.innerHTML = `
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+        Guardar todas`;
+    }
+  });
+
+  load();
+</script>

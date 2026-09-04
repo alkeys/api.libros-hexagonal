@@ -1,0 +1,224 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Evaluaciones" active="evaluaciones">
+  <div class="fade-in space-y-6">
+    <div id="crud-evaluaciones"></div>
+    <div id="calificaciones"></div>
+  </div>
+</Layout>
+
+<script>
+  import { createCrudPage, badge, fmtDate } from '../lib/crud';
+  import { esc, toast, openModal } from '../lib/ui';
+  import { apiGet, apiPost, apiDelete } from '../lib/api';
+
+  // Evaluaciones
+  createCrudPage({
+    root: '#crud-evaluaciones',
+    endpoint: '/evaluaciones',
+    title: 'Evaluaciones',
+    description: 'Evaluaciones programadas por asignación y período.',
+    createLabel: 'Nueva evaluación',
+    searchKeys: ['nombre'],
+    emptyText: 'No hay evaluaciones registradas.',
+    columns: [
+      { label: 'Evaluación', render: (r) => `<p class="font-bold text-ink">${esc(r.nombre)}</p>` },
+      { label: 'Asignación', render: (r) => badge(`A#${r.idAsignacion}`) },
+      { label: 'Período', render: (r) => badge(`P#${r.idPeriodo}`) },
+      { label: 'Tipo', render: (r) => badge(`T#${r.idTipoEvaluacion}`) },
+      { label: 'Fecha', render: (r) => fmtDate(r.fechaEvaluacion) },
+      { label: 'Porcentaje', render: (r) => `<span class="font-bold">${esc(r.porcentaje ?? '—')}%</span>` },
+      { label: 'Nota máx.', render: (r) => `<span class="font-bold">${esc(r.notaMaxima ?? '—')}</span>` },
+      { label: 'Estado', render: (r) => badge(r.estado) },
+    ],
+    fields: [
+      {
+        name: 'idAsignacion', label: 'Asignación de clase', type: 'select', required: true,
+        options: async () => (await apiGet('/horarios/asignaciones') || []).map((a) => ({ value: a.id, label: `Asignación #${a.id}` })),
+      },
+      {
+        name: 'idPeriodo', label: 'Período académico', type: 'select', required: true,
+        options: async () => {
+          const anios = await apiGet('/anios-escolares');
+          const periodos = [];
+          for (const anio of anios || []) {
+            const ps = await apiGet(`/anios-escolares/${anio.id}/periodos`);
+            (ps || []).forEach((p) => periodos.push({ value: p.id, label: `${anio.anio} · ${p.nombre}` }));
+          }
+          return periodos;
+        },
+      },
+      {
+        name: 'idTipoEvaluacion', label: 'Tipo de evaluación', type: 'select', required: true,
+        options: [
+          { value: 1, label: 'Examen (40%)' },
+          { value: 2, label: 'Tarea (20%)' },
+          { value: 3, label: 'Proyecto (20%)' },
+          { value: 4, label: 'Participación (10%)' },
+          { value: 5, label: 'Actividad (10%)' },
+        ],
+      },
+      { name: 'nombre', label: 'Nombre', required: true },
+      { name: 'fechaEvaluacion', label: 'Fecha', type: 'date', required: true },
+      { name: 'porcentaje', label: 'Porcentaje', type: 'number' },
+      { name: 'notaMaxima', label: 'Nota máxima', type: 'number', step: '0.01' },
+      { name: 'descripcion', label: 'Descripción', type: 'textarea', span: true },
+    ],
+  });
+
+  // Calificaciones
+  const calRoot = document.getElementById('calificaciones');
+  let evaluaciones = [];
+
+  async function loadEvals() {
+    try {
+      evaluaciones = (await apiGet('/evaluaciones')) || [];
+    } catch {
+      evaluaciones = [];
+    }
+  }
+
+  async function renderCalificaciones() {
+    await loadEvals();
+    const evalOptions = evaluaciones
+      .map((e) => `<option value="${esc(e.id)}">${esc(e.nombre)}</option>`)
+      .join('');
+    calRoot.innerHTML = `
+      <div class="card fade-in overflow-hidden">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
+          <div>
+            <h2 class="text-xl font-extrabold text-ink">Calificaciones</h2>
+            <p class="mt-0.5 text-sm text-ink-soft">Notas de estudiantes por evaluación.</p>
+          </div>
+          <button id="cal-new" class="btn-primary">+ Nueva calificación</button>
+        </div>
+        <div class="px-6 py-5">
+          <label class="label">Evaluación</label>
+          <select id="cal-eval" class="input max-w-md">${evalOptions}</select>
+          <div id="cal-table" class="mt-4"></div>
+        </div>
+      </div>`;
+
+    const sel = calRoot.querySelector('#cal-eval');
+    const table = calRoot.querySelector('#cal-table');
+
+    async function loadTable() {
+      const id = sel.value;
+      if (!id) {
+        table.innerHTML = `<p class="text-sm font-semibold text-ink-soft">Selecciona una evaluación.</p>`;
+        return;
+      }
+      table.innerHTML = Array.from({ length: 4 }, () => '<div class="skeleton mb-2 h-10 w-full"></div>').join('');
+      try {
+        const notas = (await apiGet(`/evaluaciones/${id}/calificaciones`)) || [];
+        if (!notas.length) {
+          table.innerHTML = `<p class="text-sm font-semibold text-ink-soft">Sin calificaciones para esta evaluación.</p>`;
+          return;
+        }
+        table.innerHTML = `
+          <div class="overflow-x-auto rounded-xl border border-slate-100">
+            <table class="w-full min-w-[480px]">
+              <thead><tr class="bg-slate-50/80">
+                <th class="th">Estudiante</th><th class="th">Nota</th><th class="th">Observación</th><th class="th">Registro</th><th class="th">Acciones</th>
+              </tr></thead>
+              <tbody>
+                ${notas.map((n) => `
+                  <tr class="border-t border-slate-50 transition hover:bg-brand-50/40">
+                    <td class="td font-bold">#${esc(n.idEstudiante)}</td>
+                    <td class="td"><span class="badge ring-1 ring-inset ${Number(n.notaObtenida) >= 6 ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : 'bg-rose-50 text-rose-700 ring-rose-600/20'}">${esc(n.notaObtenida ?? '—')}</span></td>
+                    <td class="td text-ink-soft">${esc(n.observacion || '—')}</td>
+                    <td class="td text-xs text-ink-soft">${fmtDate(n.fechaRegistro)}</td>
+                    <td class="td">
+                      <button data-del-cal="${esc(n.id)}" class="btn-icon-danger" title="Eliminar calificación">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+                      </button>
+                    </td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>`;
+        table.querySelectorAll('[data-del-cal]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const calId = btn.dataset.delCal;
+            openModal({
+              title: 'Eliminar calificación',
+              size: 'max-w-md',
+              submitLabel: 'Eliminar',
+              danger: true,
+              body: `
+                <div class="sm:col-span-2 py-2 text-center">
+                  <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+                  </div>
+                  <p class="mt-3 text-sm font-semibold text-ink">¿Seguro que deseas eliminar esta calificación?</p>
+                  <p class="mt-1 text-xs text-ink-soft">ID #${esc(calId)} · Esta acción no se puede deshacer.</p>
+                </div>`,
+              onSubmit: async () => {
+                await apiDelete(`/evaluaciones/calificaciones/${calId}`);
+                toast('Calificación eliminada', 'success');
+                loadTable();
+              },
+            });
+          });
+        });
+      } catch {
+        table.innerHTML = `<p class="text-sm font-semibold text-rose-600">No se pudo cargar.</p>`;
+      }
+    }
+
+    sel.addEventListener('change', loadTable);
+    calRoot.querySelector('#cal-new').addEventListener('click', () => {
+      openModal({
+        title: 'Nueva calificación',
+        size: 'max-w-md',
+        body: `
+          <div>
+            <label class="label">Evaluación *</label>
+            <select name="idEvaluacion" class="input" required>
+              ${evaluaciones.map((e) => `<option value="${esc(e.id)}">${esc(e.nombre)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="label">Estudiante *</label>
+            <select name="idEstudiante" class="input" required id="cal-estudiante"></select>
+          </div>
+          <div>
+            <label class="label">Nota obtenida *</label>
+            <input name="notaObtenida" type="number" step="0.01" min="0" class="input" required />
+          </div>
+          <div>
+            <label class="label">Observación</label>
+            <input name="observacion" class="input" />
+          </div>`,
+        onSubmit: async (form) => {
+          const payload = {
+            idEvaluacion: Number(form.get('idEvaluacion')),
+            idEstudiante: Number(form.get('idEstudiante')),
+            notaObtenida: Number(form.get('notaObtenida')),
+            observacion: form.get('observacion') || null,
+          };
+          await apiPost('/evaluaciones/calificaciones', payload);
+          toast('Calificación registrada', 'success');
+          loadTable();
+        },
+      });
+
+      // Cargar estudiantes en el select del modal
+      apiGet('/estudiantes')
+        .then((estudiantes) => {
+          const selEst = document.getElementById('cal-estudiante');
+          if (!selEst) return;
+          selEst.innerHTML = (estudiantes || [])
+            .map((e) => `<option value="${esc(e.id)}">${esc(e.nombres)} ${esc(e.apellidos)} (${esc(e.codigoEstudiante)})</option>`)
+            .join('');
+        })
+        .catch(() => {});
+    });
+
+    if (sel.value) loadTable();
+  }
+
+  renderCalificaciones();
+</script>

@@ -1,0 +1,184 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Inicio" active="inicio">
+  <div class="fade-in space-y-6" id="dash-root">
+    <div id="dash-hero" class="card overflow-hidden">
+      <div class="relative bg-gradient-to-br from-brand-700 via-brand-600 to-flare-600 px-6 py-8 sm:px-8">
+        <div class="pointer-events-none absolute -top-10 -right-10 size-52 rounded-full bg-white/10 blur-2xl"></div>
+        <div class="pointer-events-none absolute -bottom-16 left-1/3 size-44 rounded-full bg-flare-400/20 blur-2xl"></div>
+        <div class="relative">
+          <p class="text-xs font-bold tracking-widest text-brand-100 uppercase">Bienvenido 👋</p>
+          <h2 class="mt-2 max-w-xl text-2xl leading-tight font-extrabold text-white sm:text-3xl">
+            <span id="inst-name">Sistema Escolar</span>
+          </h2>
+          <p class="mt-2 max-w-lg text-sm font-medium text-brand-100/90">
+            Administra estudiantes, profesores, materias, horarios y mucho más desde un solo lugar.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div id="stats" class="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6"></div>
+
+    <div class="grid gap-6 xl:grid-cols-3">
+      <div class="card p-6 xl:col-span-2">
+        <h3 class="text-base font-extrabold text-ink">Distribución de estudiantes</h3>
+        <p class="mt-0.5 text-xs font-medium text-ink-soft">Según género registrado</p>
+        <div id="gender-chart" class="mt-5 flex h-56 items-center justify-center gap-8">
+          <div class="skeleton h-40 w-40 rounded-full"></div>
+          <div class="skeleton h-24 w-32"></div>
+        </div>
+      </div>
+
+      <div class="card p-6">
+        <h3 class="text-base font-extrabold text-ink">Estado de estudiantes</h3>
+        <p class="mt-0.5 text-xs font-medium text-ink-soft">Resumen general</p>
+        <div id="status-list" class="mt-4 space-y-3"></div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { apiGet } from '../lib/api';
+  import { esc } from '../lib/ui';
+
+  const stats = document.getElementById('stats');
+  const genderChart = document.getElementById('gender-chart');
+  const statusList = document.getElementById('status-list');
+
+  // Cargar institución
+  apiGet('/configuracion')
+    .then((cfg) => {
+      const el = document.getElementById('inst-name');
+      if (el) el.textContent = cfg?.nombreInstitucion || 'Sistema Escolar';
+    })
+    .catch(() => {});
+
+  // Cargar estudiantes para las gráficas
+  let estudiantes = [];
+  apiGet('/estudiantes')
+    .then((data) => {
+      estudiantes = data || [];
+      renderCharts();
+    })
+    .catch(() => {
+      genderChart.innerHTML = `<p class="text-sm font-semibold text-ink-soft">No se pudo conectar con la API.</p>`;
+    });
+
+  // Estadísticas de módulos
+  const modules = [
+    { label: 'Estudiantes', endpoint: '/estudiantes', icon: 'users', grad: 'from-brand-500 to-brand-600' },
+    { label: 'Profesores', endpoint: '/profesores', icon: 'user', grad: 'from-sky-500 to-brand-500' },
+    { label: 'Materias', endpoint: '/materias', icon: 'book', grad: 'from-flare-500 to-amber-400' },
+    { label: 'Grupos', endpoint: '/grupos', icon: 'grid', grad: 'from-emerald-500 to-sky-500' },
+    { label: 'Aulas', endpoint: '/horarios/aulas', icon: 'clock', grad: 'from-amber-400 to-flare-500' },
+    { label: 'Representantes', endpoint: '/representantes', icon: 'heart', grad: 'from-flare-500 to-brand-500' },
+  ];
+
+  const iconPaths = {
+    users: 'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z',
+    user: 'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z',
+    book: 'M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25',
+    grid: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z',
+    clock: 'M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z',
+    heart: 'M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z',
+  };
+
+  Promise.all(
+    modules.map((m) =>
+      apiGet(m.endpoint)
+        .then((data) => ({ ...m, count: (data || []).length }))
+        .catch(() => ({ ...m, count: '—' })),
+    ),
+  ).then((results) => {
+    stats.innerHTML = results
+      .map(
+        (m) => `
+      <a href="/${m.endpoint.split('/')[1]}" class="card group relative overflow-hidden p-5 transition-all hover:-translate-y-0.5 hover:shadow-xl">
+        <div class="absolute -top-6 -right-6 size-20 rounded-full bg-gradient-to-br ${m.grad} opacity-15 transition group-hover:opacity-25"></div>
+        <div class="mb-3 inline-flex size-10 items-center justify-center rounded-xl bg-gradient-to-br ${m.grad} text-white shadow-md">
+          <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="${iconPaths[m.icon]}"/></svg>
+        </div>
+        <p class="text-2xl font-extrabold text-ink">${esc(m.count)}</p>
+        <p class="mt-0.5 text-xs font-bold tracking-wide text-ink-soft uppercase">${esc(m.label)}</p>
+      </a>`,
+      )
+      .join('');
+  });
+
+  function renderCharts() {
+    if (!estudiantes.length) {
+      genderChart.innerHTML = `<p class="text-sm font-semibold text-ink-soft">Aún no hay estudiantes registrados.</p>`;
+      statusList.innerHTML = `<p class="text-sm font-semibold text-ink-soft">Aún no hay estudiantes registrados.</p>`;
+      return;
+    }
+
+    // Género
+    const byGender = {};
+    estudiantes.forEach((e) => {
+      const g = e.genero || 'OTRO';
+      byGender[g] = (byGender[g] || 0) + 1;
+    });
+    const genderColors = { MASCULINO: '#7c28f7', FEMENINO: '#ec4899', OTRO: '#f59e0b' };
+    const genderOrder = ['MASCULINO', 'FEMENINO', 'OTRO'];
+    const segments = genderOrder
+      .filter((g) => byGender[g])
+      .map((g, i) => {
+        const from = genderOrder.slice(0, i).reduce((acc, x) => acc + (byGender[x] || 0), 0) / estudiantes.length * 360;
+        const pct = (byGender[g] || 0) / estudiantes.length * 360;
+        return `${genderColors[g]} ${from}deg ${from + pct}deg`;
+      })
+      .join(', ');
+
+    genderChart.innerHTML = `
+      <div class="flex flex-col items-center gap-4 sm:flex-row sm:gap-8">
+        <div class="relative size-40 shrink-0">
+          <div class="size-40 rounded-full" style="background: conic-gradient(${segments || '#e2e8f0 0 360deg'});"></div>
+          <div class="absolute inset-6 flex flex-col items-center justify-center rounded-full bg-white shadow-inner">
+            <span class="text-2xl font-extrabold text-ink">${estudiantes.length}</span>
+            <span class="text-[10px] font-bold tracking-wider text-ink-soft uppercase">Total</span>
+          </div>
+        </div>
+        <div class="flex flex-col gap-3">
+          ${genderOrder.filter((g) => byGender[g]).map((g) => `
+            <div class="flex items-center gap-3">
+              <span class="size-3 rounded-full" style="background:${genderColors[g]}"></span>
+              <span class="text-sm font-semibold text-ink">${esc(g === 'OTRO' ? 'Otro' : g === 'MASCULINO' ? 'Masculino' : 'Femenino')}</span>
+              <span class="ml-auto text-sm font-extrabold text-ink-soft">${byGender[g]} (${Math.round((byGender[g] / estudiantes.length) * 100)}%)</span>
+            </div>`).join('')}
+        </div>
+      </div>`;
+
+    // Estado
+    const byStatus = {};
+    estudiantes.forEach((e) => {
+      const s = e.estado || 'ACTIVO';
+      byStatus[s] = (byStatus[s] || 0) + 1;
+    });
+    statusList.innerHTML = Object.entries(byStatus)
+      .map(([s, count]) => {
+        const pct = Math.round((count / estudiantes.length) * 100);
+        const colors = {
+          ACTIVO: 'bg-emerald-500',
+          INACTIVO: 'bg-slate-400',
+          RETIRADO: 'bg-rose-500',
+          GRADUADO: 'bg-sky-500',
+          SUSPENDIDO: 'bg-amber-500',
+        };
+        return `
+        <div>
+          <div class="flex items-center justify-between text-sm">
+            <span class="font-semibold text-ink">${esc(s)}</span>
+            <span class="font-extrabold text-ink-soft">${count}</span>
+          </div>
+          <div class="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100">
+            <div class="h-full rounded-full ${colors[s] || 'bg-brand-500'} transition-all" style="width:${pct}%"></div>
+          </div>
+        </div>`;
+      })
+      .join('');
+  }
+</script>

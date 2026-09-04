@@ -34,6 +34,9 @@ public class JpaEstudianteAdapter implements EstudianteRepositoryPort, Matricula
     public Optional<Estudiante> findById(Long id) { return estudianteRepo.findById(id).map(this::toDomainEstudiante); }
 
     @Override
+    public void deleteById(Long id) { estudianteRepo.deleteById(id); }
+
+    @Override
     public Matricula save(Matricula matricula) { return toDomainMatricula(matriculaRepo.save(toJpaMatricula(matricula))); }
 
     @Override

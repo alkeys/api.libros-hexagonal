@@ -8,4 +8,5 @@ public interface EstudianteRepositoryPort {
     Estudiante save(Estudiante estudiante);
     List<Estudiante> findAll();
     Optional<Estudiante> findById(Long id);
+    void deleteById(Long id);
 }

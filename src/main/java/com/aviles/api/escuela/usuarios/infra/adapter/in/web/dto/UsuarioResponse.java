@@ -1,5 +1,7 @@
 package com.aviles.api.escuela.usuarios.infra.adapter.in.web.dto;
 
+import java.util.List;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(description = "Respuesta de un usuario")
@@ -11,5 +13,7 @@ public record UsuarioResponse(
     @Schema(description = "Correo electrónico")
     String correo,
     @Schema(description = "Estado", example = "ACTIVO")
-    String estado
+    String estado,
+    @Schema(description = "Roles asignados al usuario", example = "[\"PROFESOR\"]")
+    List<String> roles
 ) {}

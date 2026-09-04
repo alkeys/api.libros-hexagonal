@@ -1,0 +1,80 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Grupos" active="grupos">
+  <div id="crud-root"></div>
+</Layout>
+
+<script>
+  import { createCrudPage, badge } from '../lib/crud';
+  import { esc } from '../lib/ui';
+  import { apiGet } from '../lib/api';
+
+  // Cargar grados de todos los niveles (para el select del formulario)
+  async function loadGrados() {
+    const niveles = await apiGet('/niveles');
+    const lista = [];
+    for (const n of niveles || []) {
+      const grados = await apiGet(`/niveles/${n.id}/grados`);
+      (grados || []).forEach((g) => lista.push({ value: g.id, label: `${g.nombreGrado} (${n.nombre})` }));
+    }
+    return lista;
+  }
+
+  createCrudPage({
+    root: '#crud-root',
+    endpoint: '/grupos',
+    title: 'Grupos',
+    description: 'Grupos escolares por grado, sección y año escolar.',
+    createLabel: 'Nuevo grupo',
+    searchKeys: ['nombre', 'turno'],
+    emptyText: 'No hay grupos registrados.',
+    columns: [
+      {
+        label: 'Grupo',
+        render: (r) => `
+          <div>
+            <p class="font-bold text-ink">${esc(r.nombre)}</p>
+            <p class="text-xs text-ink-soft">Grado #${esc(r.idGrado)} · Sección #${esc(r.idSeccion)}</p>
+          </div>`,
+      },
+      { label: 'Año escolar', render: (r) => badge(`Año ${r.idAnioEscolar}`) },
+      { label: 'Turno', render: (r) => badge(r.turno) },
+      { label: 'Capacidad', render: (r) => `<span class="font-bold">${esc(r.capacidad ?? '—')}</span>` },
+      { label: 'Estado', render: (r) => badge(r.estado) },
+    ],
+    fields: [
+      {
+        name: 'idGrado',
+        label: 'Grado',
+        type: 'select',
+        required: true,
+        options: loadGrados,
+      },
+      {
+        name: 'idSeccion',
+        label: 'Sección',
+        type: 'select',
+        required: true,
+        options: async () => {
+          const secs = await apiGet('/niveles/secciones');
+          return (secs || []).map((s) => ({ value: s.id, label: `Sección ${s.nombre}` }));
+        },
+      },
+      {
+        name: 'idAnioEscolar',
+        label: 'Año escolar',
+        type: 'select',
+        required: true,
+        options: async () => {
+          const anios = await apiGet('/anios-escolares');
+          return (anios || []).map((a) => ({ value: a.id, label: `${a.nombre} (${a.anio})` }));
+        },
+      },
+      { name: 'nombre', label: 'Nombre del grupo', placeholder: '1° Grado Sección A', required: true },
+      { name: 'capacidad', label: 'Capacidad máxima', type: 'number' },
+      { name: 'turno', label: 'Turno', type: 'select', options: ['MATUTINO', 'VESPERTINO', 'NOCTURNO', 'MIXTO'] },
+    ],
+  });
+</script>

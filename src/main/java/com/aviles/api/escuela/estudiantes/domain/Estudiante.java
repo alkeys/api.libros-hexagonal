@@ -40,4 +40,13 @@ public record Estudiante(
                 null, null, null, null, null, null, null, "ACTIVO", null,
                 OffsetDateTime.now(), OffsetDateTime.now());
     }
+
+    public static Estudiante nuevo(String codigoEstudiante, String nombres, String apellidos,
+                                    LocalDate fechaNacimiento, String genero, String nacionalidad,
+                                    String dui, String nie, String correoElectronico, String telefono,
+                                    String direccion, LocalDate fechaIngreso) {
+        return new Estudiante(null, codigoEstudiante, nombres, apellidos, fechaNacimiento, genero,
+                nacionalidad, dui, nie, correoElectronico, telefono, direccion, fechaIngreso, "ACTIVO", null,
+                OffsetDateTime.now(), OffsetDateTime.now());
+    }
 }

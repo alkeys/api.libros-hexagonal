@@ -1,0 +1,256 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  active: string;
+}
+
+const { title, active } = Astro.props;
+
+const nav = [
+  { href: '/', key: 'inicio', label: 'Inicio', icon: 'home', roles: [] },
+  { href: '/estudiantes', key: 'estudiantes', label: 'Estudiantes', icon: 'users', roles: ['ADMIN', 'PROFESOR'] },
+  { href: '/profesores', key: 'profesores', label: 'Profesores', icon: 'user', roles: ['ADMIN', 'PROFESOR'] },
+  { href: '/materias', key: 'materias', label: 'Materias', icon: 'book', roles: ['ADMIN', 'PROFESOR'] },
+  { href: '/niveles', key: 'niveles', label: 'Niveles y Grados', icon: 'layers', roles: ['ADMIN', 'PROFESOR'] },
+  { href: '/grupos', key: 'grupos', label: 'Grupos', icon: 'grid', roles: ['ADMIN', 'PROFESOR'] },
+  { href: '/horarios', key: 'horarios', label: 'Horarios y Aulas', icon: 'clock', roles: ['ADMIN', 'PROFESOR'] },
+  { href: '/evaluaciones', key: 'evaluaciones', label: 'Evaluaciones', icon: 'clipboard', roles: ['ADMIN', 'PROFESOR'] },
+  { href: '/notas', key: 'notas', label: 'Notas', icon: 'pencil', roles: ['ADMIN', 'PROFESOR'] },
+  { href: '/asistencia', key: 'asistencia', label: 'Asistencia', icon: 'calendar-check', roles: ['ADMIN', 'PROFESOR'] },
+  { href: '/anios-escolares', key: 'anios', label: 'Años Escolares', icon: 'calendar', roles: ['ADMIN', 'PROFESOR'] },
+  { href: '/representantes', key: 'representantes', label: 'Representantes', icon: 'heart', roles: ['ADMIN', 'PROFESOR'] },
+  { href: '/mis-notas', key: 'mis-notas', label: 'Mis Notas', icon: 'clipboard-check', roles: ['ESTUDIANTE'] },
+  { href: '/usuarios', key: 'usuarios', label: 'Usuarios', icon: 'lock', roles: ['ADMIN'] },
+  { href: '/configuracion', key: 'configuracion', label: 'Configuración', icon: 'cog', roles: ['ADMIN'] },
+];
+
+const icons: Record<string, string> = {
+  home: 'M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25',
+  users: 'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z',
+  user: 'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z',
+  book: 'M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25',
+  layers: 'M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0l4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0l-5.571 3-5.571-3',
+  grid: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z',
+  clock: 'M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z',
+  clipboard: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+  'calendar-check': 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+  calendar: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5',
+  heart: 'M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z',
+  lock: 'M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z',
+  'clipboard-check': 'M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m8.9-4.414c.376.023.75.05 1.124.08 1.131.094 1.976 1.057 1.976 2.192V16.5A2.25 2.25 0 0118 18.75h-2.25m-7.5-10.5H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V18.75m-7.5-10.5h6.375c.621 0 1.125.504 1.125 1.125v9.375m-8.25-3l1.5 1.5 3-3.75',
+  pencil: 'M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10',
+  cog: 'M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.28z',
+};
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title} · Sistema Escolar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="min-h-dvh bg-surface lg:pl-72">
+      <!-- Sidebar -->
+      <aside
+        id="sidebar"
+        class="fixed inset-y-0 left-0 z-40 flex w-72 -translate-x-full flex-col bg-gradient-to-b from-brand-950 via-[#2a0b5e] to-[#3d0f7a] transition-transform duration-300 lg:translate-x-0"
+      >
+        <div class="flex items-center gap-3 px-6 pt-6 pb-5">
+          <div class="flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-400 to-flare-500 text-lg font-extrabold text-white shadow-lg shadow-brand-900/40">
+            S
+          </div>
+          <div>
+            <p class="text-base leading-tight font-extrabold text-white">Sistema Escolar</p>
+            <p class="text-xs font-medium text-brand-200">Gestión académica</p>
+          </div>
+        </div>
+
+        <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-2">
+          {nav.map((item) => (
+            <a
+              href={item.href}
+              data-nav-roles={item.roles.join('|')}
+              class:list={[
+                'group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all',
+                active === item.key
+                  ? 'bg-white/10 text-white shadow-inner'
+                  : 'text-brand-100/80 hover:bg-white/5 hover:text-white',
+              ]}
+            >
+              <svg
+                class:list={['size-5 shrink-0 transition', active === item.key ? 'text-flare-400' : 'text-brand-300/70 group-hover:text-brand-200']}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="1.8"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d={icons[item.icon]} />
+              </svg>
+              {item.label}
+            </a>
+          ))}
+        </nav>
+
+        <div class="m-3 rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
+          <div class="flex items-center gap-2">
+            <span class="size-2 rounded-full bg-emerald-400" id="api-dot"></span>
+            <p class="text-xs font-semibold text-white" id="api-status">Verificando API…</p>
+          </div>
+          <p class="mt-1 text-[11px] text-brand-200/70">Backend: localhost:8080</p>
+        </div>
+      </aside>
+
+      <!-- Overlay móvil -->
+      <div id="overlay" class="fixed inset-0 z-30 hidden bg-brand-950/50 backdrop-blur-sm lg:hidden"></div>
+
+      <!-- Contenido -->
+      <div class="flex min-h-dvh flex-col">
+        <header class="sticky top-0 z-20 border-b border-slate-200/70 bg-surface/85 backdrop-blur-lg">
+          <div class="flex items-center gap-3 px-4 py-3.5 sm:px-6 lg:px-8">
+            <button
+              id="menu-btn"
+              class="rounded-xl border border-slate-200 bg-white p-2 text-ink-soft transition hover:text-ink lg:hidden"
+              aria-label="Abrir menú"
+            >
+              <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+            </button>
+            <div>
+              <h1 class="text-lg font-extrabold tracking-tight text-ink sm:text-xl">{title}</h1>
+              <p class="hidden text-xs font-medium text-ink-soft sm:block" id="today"></p>
+            </div>
+            <div class="ml-auto flex items-center gap-3">
+              <div class="hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 sm:flex">
+                <span class="size-2 rounded-full bg-gradient-to-r from-brand-500 to-flare-500"></span>
+                <span class="text-xs font-bold text-ink-soft" id="year-label">—</span>
+              </div>
+              <div class="hidden flex-col items-end sm:flex">
+                <span class="text-xs font-bold text-ink" id="user-name">—</span>
+                <span class="text-[10px] font-medium text-ink-soft" id="user-role">—</span>
+              </div>
+              <div class="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-flare-500 text-sm font-extrabold text-white shadow-md shadow-brand-500/30" id="user-avatar">
+                —
+              </div>
+              <button id="logout-btn" class="rounded-xl border border-slate-200 bg-white p-2 text-ink-soft transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600" title="Cerrar sesión">
+                <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <main class="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <slot />
+        </main>
+
+        <footer class="px-4 pb-6 text-center text-xs font-medium text-ink-soft/60 sm:px-6">
+          Sistema Escolar · API v1 · El Salvador
+        </footer>
+      </div>
+    </div>
+
+    <script>
+      // Menú móvil
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('overlay');
+      const menuBtn = document.getElementById('menu-btn');
+
+      function closeMenu() {
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('hidden');
+      }
+      menuBtn?.addEventListener('click', () => {
+        sidebar.classList.toggle('-translate-x-full');
+        overlay.classList.toggle('hidden');
+      });
+      overlay?.addEventListener('click', closeMenu);
+      sidebar?.querySelectorAll('a').forEach((a) => a.addEventListener('click', closeMenu));
+
+      // Sesión: guarda de acceso
+      import('../lib/session').then(({ getSession, clearSession }) => {
+        const session = getSession();
+        if (!session && !location.pathname.startsWith('/login')) {
+          location.replace('/login');
+          return;
+        }
+        // Estudiantes (sin rol admin/profesor) van directo a su portal de notas
+        if (session && !(session.roles || []).some((r) => ['ADMIN', 'PROFESOR'].includes(r))) {
+          const esEstudiante = (session.roles || []).includes('ESTUDIANTE') || session.idEstudiante;
+          if (esEstudiante && !location.pathname.startsWith('/mis-notas') && !location.pathname.startsWith('/login')) {
+            location.replace('/mis-notas');
+            return;
+          }
+        }
+        if (session) {
+          const roles = session.roles || [];
+          const userAvatar = document.getElementById('user-avatar');
+          const userName = document.getElementById('user-name');
+          const userRole = document.getElementById('user-role');
+          if (userAvatar) userAvatar.textContent = (session.username || '?').slice(0, 2).toUpperCase();
+          if (userName) userName.textContent = session.username || '';
+          if (userRole) {
+            const esAdmin = roles.includes('ADMIN');
+            const esProfesor = roles.includes('PROFESOR');
+            const esEstudiante = roles.includes('ESTUDIANTE');
+            if (esAdmin) userRole.textContent = 'Administrador';
+            else if (esProfesor) userRole.textContent = 'Profesor';
+            else if (esEstudiante) userRole.textContent = 'Estudiante';
+            else if (session.idProfesor) userRole.textContent = 'Profesor';
+            else if (session.idEstudiante) userRole.textContent = 'Estudiante';
+            else userRole.textContent = 'Administrador';
+          }
+
+          // Ocultar enlaces del menú que no corresponden al rol
+          const tieneRol = (req) => !req.length || req.some((r) => roles.includes(r));
+          document.querySelectorAll('nav [data-nav-roles]').forEach((link) => {
+            const req = link.dataset.navRoles ? link.dataset.navRoles.split('|') : [];
+            if (!tieneRol(req)) link.remove();
+          });
+
+          document.getElementById('logout-btn')?.addEventListener('click', () => {
+            clearSession();
+            location.href = '/login';
+          });
+        }
+      });
+
+      // Fecha de hoy
+      const today = document.getElementById('today');
+      if (today) {
+        today.textContent = new Date().toLocaleDateString('es-SV', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        });
+      }
+      const yearLabel = document.getElementById('year-label');
+      if (yearLabel) yearLabel.textContent = new Date().getFullYear();
+
+      // Estado de la API
+      import('../lib/api').then(({ apiGet }) => {
+        const dot = document.getElementById('api-dot');
+        const status = document.getElementById('api-status');
+        apiGet('/configuracion')
+          .then((cfg) => {
+            dot.className = 'size-2 rounded-full bg-emerald-400';
+            status.textContent = cfg?.nombreInstitucion || 'API en línea';
+          })
+          .catch(() => {
+            dot.className = 'size-2 rounded-full bg-rose-400';
+            status.textContent = 'API fuera de línea';
+          });
+      });
+    </script>
+  </body>
+</html>

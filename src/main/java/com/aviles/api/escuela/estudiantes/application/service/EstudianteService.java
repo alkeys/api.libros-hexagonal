@@ -1,9 +1,12 @@
 package com.aviles.api.escuela.estudiantes.application.service;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.aviles.api.escuela.estudiantes.application.port.in.*;
 import com.aviles.api.escuela.estudiantes.application.port.out.*;
@@ -16,7 +19,8 @@ import com.aviles.api.escuela.shared.domain.values.Id;
  */
 @Service
 public class EstudianteService implements CreateEstudianteCase, GetAllEstudiantesCase, GetEstudianteByIdCase,
-        CreateMatriculaCase, GetMatriculasByGrupoCase, CreateContactoEmergenciaCase {
+        CreateMatriculaCase, GetMatriculasByGrupoCase, CreateContactoEmergenciaCase,
+        UpdateEstudianteCase, DeleteEstudianteCase {
 
     private final EstudianteRepositoryPort estudianteRepositoryPort;
     private final MatriculaRepositoryPort matriculaRepositoryPort;
@@ -38,6 +42,26 @@ public class EstudianteService implements CreateEstudianteCase, GetAllEstudiante
 
     @Override
     public Optional<Estudiante> getById(Id id) { return estudianteRepositoryPort.findById(id.getValue()); }
+
+    @Override
+    public Estudiante update(Estudiante estudiante) {
+        Estudiante existente = estudianteRepositoryPort.findById(estudiante.id().getValue())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Estudiante no encontrado"));
+        Estudiante actualizado = new Estudiante(existente.id(), estudiante.codigoEstudiante(), estudiante.nombres(),
+                estudiante.apellidos(), estudiante.fechaNacimiento(), estudiante.genero(), estudiante.nacionalidad(),
+                estudiante.dui(), estudiante.nie(), estudiante.correoElectronico(), estudiante.telefono(),
+                estudiante.direccion(), estudiante.fechaIngreso(), existente.estado(), existente.fotoUrl(),
+                existente.fechaCreacion(), OffsetDateTime.now());
+        return estudianteRepositoryPort.save(actualizado);
+    }
+
+    @Override
+    public void delete(Id id) {
+        if (estudianteRepositoryPort.findById(id.getValue()).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Estudiante no encontrado");
+        }
+        estudianteRepositoryPort.deleteById(id.getValue());
+    }
 
     @Override
     public Matricula create(Matricula matricula) { return matriculaRepositoryPort.save(matricula); }

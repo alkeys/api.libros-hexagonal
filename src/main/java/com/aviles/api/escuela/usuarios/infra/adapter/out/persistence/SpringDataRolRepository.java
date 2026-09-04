@@ -5,4 +5,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface SpringDataRolRepository extends JpaRepository<JpaRol, Long> {
+    java.util.Optional<JpaRol> findByNombre(String nombre);
 }

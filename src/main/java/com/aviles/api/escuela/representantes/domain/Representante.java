@@ -25,4 +25,9 @@ public record Representante(
     public static Representante nuevo(String nombres, String apellidos, String dui, String telefono) {
         return new Representante(null, nombres, apellidos, dui, null, telefono, null, null, null, "ACTIVO");
     }
+
+    public static Representante nuevo(String nombres, String apellidos, String dui, String correoElectronico,
+                                       String telefono) {
+        return new Representante(null, nombres, apellidos, dui, correoElectronico, telefono, null, null, null, "ACTIVO");
+    }
 }

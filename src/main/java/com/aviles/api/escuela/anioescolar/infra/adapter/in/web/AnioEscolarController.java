@@ -22,15 +22,25 @@ public class AnioEscolarController {
 
     private final CreateAnioEscolarCase createAnioCase;
     private final GetAllAniosEscolaresCase getAllAniosCase;
+    private final UpdateAnioEscolarCase updateAnioCase;
+    private final DeleteAnioEscolarCase deleteAnioCase;
     private final CreatePeriodoCase createPeriodoCase;
     private final GetPeriodosByAnioCase getPeriodosCase;
+    private final UpdatePeriodoCase updatePeriodoCase;
+    private final DeletePeriodoCase deletePeriodoCase;
 
     public AnioEscolarController(CreateAnioEscolarCase createAnioCase, GetAllAniosEscolaresCase getAllAniosCase,
-                                  CreatePeriodoCase createPeriodoCase, GetPeriodosByAnioCase getPeriodosCase) {
+                                  UpdateAnioEscolarCase updateAnioCase, DeleteAnioEscolarCase deleteAnioCase,
+                                  CreatePeriodoCase createPeriodoCase, GetPeriodosByAnioCase getPeriodosCase,
+                                  UpdatePeriodoCase updatePeriodoCase, DeletePeriodoCase deletePeriodoCase) {
         this.createAnioCase = createAnioCase;
         this.getAllAniosCase = getAllAniosCase;
+        this.updateAnioCase = updateAnioCase;
+        this.deleteAnioCase = deleteAnioCase;
         this.createPeriodoCase = createPeriodoCase;
         this.getPeriodosCase = getPeriodosCase;
+        this.updatePeriodoCase = updatePeriodoCase;
+        this.deletePeriodoCase = deletePeriodoCase;
     }
 
     @Operation(summary = "Crear año escolar")
@@ -47,6 +57,20 @@ public class AnioEscolarController {
         return getAllAniosCase.getAll().stream().map(this::toResponse).collect(Collectors.toList());
     }
 
+    @Operation(summary = "Actualizar año escolar")
+    @PutMapping("/{id}")
+    public AnioEscolarResponse update(@PathVariable Long id, @RequestBody AnioEscolarRequest request) {
+        AnioEscolar anio = new AnioEscolar(new Id(id), request.nombre(), request.anio(),
+                LocalDate.parse(request.fechaInicio()), LocalDate.parse(request.fechaFin()), null);
+        return toResponse(updateAnioCase.update(anio));
+    }
+
+    @Operation(summary = "Eliminar año escolar")
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        deleteAnioCase.deleteAnioEscolar(new Id(id));
+    }
+
     @Operation(summary = "Crear período académico")
     @PostMapping("/periodos")
     public PeriodoResponse createPeriodo(@RequestBody PeriodoRequest request) {
@@ -60,6 +84,20 @@ public class AnioEscolarController {
     public List<PeriodoResponse> getPeriodos(@PathVariable Long idAnio) {
         return getPeriodosCase.getByAnioEscolar(new Id(idAnio)).stream()
                 .map(this::toResponsePeriodo).collect(Collectors.toList());
+    }
+
+    @Operation(summary = "Actualizar período académico")
+    @PutMapping("/periodos/{id}")
+    public PeriodoResponse updatePeriodo(@PathVariable Long id, @RequestBody PeriodoRequest request) {
+        PeriodoAcademico periodo = new PeriodoAcademico(new Id(id), new Id(request.idAnioEscolar()), request.nombre(),
+                request.numeroPeriodo(), LocalDate.parse(request.fechaInicio()), LocalDate.parse(request.fechaFin()), null);
+        return toResponsePeriodo(updatePeriodoCase.update(periodo));
+    }
+
+    @Operation(summary = "Eliminar período académico")
+    @DeleteMapping("/periodos/{id}")
+    public void deletePeriodo(@PathVariable Long id) {
+        deletePeriodoCase.deletePeriodo(new Id(id));
     }
 
     private AnioEscolarResponse toResponse(AnioEscolar a) {

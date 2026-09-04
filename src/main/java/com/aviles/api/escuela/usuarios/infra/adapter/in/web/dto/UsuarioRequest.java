@@ -6,8 +6,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record UsuarioRequest(
     @Schema(description = "Username", example = "jperez")
     String username,
-    @Schema(description = "Password (hash)", example = "hashed_password")
-    String passwordHash,
+    @Schema(description = "Contraseña en texto plano (se hashea con BCrypt en el servidor)", example = "s3cr3t-password")
+    String password,
     @Schema(description = "Correo electrónico", example = "jperez@escuela.edu.sv")
     String correo
 ) {}

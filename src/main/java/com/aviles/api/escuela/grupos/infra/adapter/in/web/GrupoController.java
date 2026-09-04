@@ -20,10 +20,15 @@ public class GrupoController {
 
     private final CreateGrupoCase createGrupoCase;
     private final GetAllGruposCase getAllGruposCase;
+    private final UpdateGrupoCase updateGrupoCase;
+    private final DeleteGrupoCase deleteGrupoCase;
 
-    public GrupoController(CreateGrupoCase createGrupoCase, GetAllGruposCase getAllGruposCase) {
+    public GrupoController(CreateGrupoCase createGrupoCase, GetAllGruposCase getAllGruposCase,
+                           UpdateGrupoCase updateGrupoCase, DeleteGrupoCase deleteGrupoCase) {
         this.createGrupoCase = createGrupoCase;
         this.getAllGruposCase = getAllGruposCase;
+        this.updateGrupoCase = updateGrupoCase;
+        this.deleteGrupoCase = deleteGrupoCase;
     }
 
     @Operation(summary = "Crear grupo escolar")
@@ -38,6 +43,20 @@ public class GrupoController {
     @GetMapping
     public List<GrupoResponse> getAll() {
         return getAllGruposCase.getAll().stream().map(this::toResponse).collect(Collectors.toList());
+    }
+
+    @Operation(summary = "Actualizar grupo escolar")
+    @PutMapping("/{id}")
+    public GrupoResponse update(@PathVariable Long id, @RequestBody GrupoRequest request) {
+        Grupo grupo = new Grupo(new Id(id), new Id(request.idGrado()), new Id(request.idSeccion()),
+                new Id(request.idAnioEscolar()), request.nombre(), request.capacidad(), request.turno(), null);
+        return toResponse(updateGrupoCase.update(grupo));
+    }
+
+    @Operation(summary = "Eliminar grupo escolar")
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        deleteGrupoCase.delete(new Id(id));
     }
 
     private GrupoResponse toResponse(Grupo g) {

@@ -1,0 +1,118 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Horarios y Aulas" active="horarios">
+  <div class="fade-in space-y-6">
+    <div id="crud-aulas"></div>
+    <div id="crud-bloques"></div>
+    <div id="crud-asignaciones"></div>
+  </div>
+</Layout>
+
+<script>
+  import { createCrudPage, badge } from '../lib/crud';
+  import { esc } from '../lib/ui';
+  import { apiGet } from '../lib/api';
+
+  // Aulas
+  createCrudPage({
+    root: '#crud-aulas',
+    endpoint: '/horarios/aulas',
+    title: 'Aulas',
+    description: 'Espacios físicos de la institución.',
+    createLabel: 'Nueva aula',
+    searchKeys: ['codigo', 'nombre', 'edificio'],
+    emptyText: 'No hay aulas registradas.',
+    columns: [
+      { label: 'Aula', render: (r) => `<p class="font-bold text-ink">${esc(r.nombre)}</p>` },
+      { label: 'Código', render: (r) => `<span class="font-mono text-xs text-ink-soft">${esc(r.codigo || '—')}</span>` },
+      { label: 'Edificio', render: (r) => esc(r.edificio || '—') },
+      { label: 'Piso', render: (r) => esc(r.piso || '—') },
+      { label: 'Capacidad', render: (r) => `<span class="font-bold">${esc(r.capacidad ?? '—')}</span>` },
+      { label: 'Tipo', render: (r) => badge(r.tipo) },
+      { label: 'Estado', render: (r) => badge(r.estado) },
+    ],
+    fields: [
+      { name: 'codigo', label: 'Código', placeholder: 'AULA-01', required: true },
+      { name: 'nombre', label: 'Nombre', placeholder: 'Salón de Matemáticas', required: true },
+      { name: 'edificio', label: 'Edificio' },
+      { name: 'piso', label: 'Piso' },
+      { name: 'capacidad', label: 'Capacidad', type: 'number', required: true },
+      { name: 'tipo', label: 'Tipo', type: 'select', options: ['AULA', 'LABORATORIO', 'AUDITORIO', 'TALLER', 'BIBLIOTECA', 'COMPUTO', 'OTRO'] },
+    ],
+  });
+
+  // Bloques horarios
+  createCrudPage({
+    root: '#crud-bloques',
+    endpoint: '/horarios/bloques',
+    title: 'Bloques Horarios',
+    description: 'Franjas de tiempo para las clases.',
+    createLabel: 'Nuevo bloque',
+    searchKeys: ['diaSemana'],
+    emptyText: 'No hay bloques horarios registrados.',
+    columns: [
+      { label: 'Día', render: (r) => badge(r.diaSemana) },
+      { label: 'Inicio', render: (r) => `<span class="font-bold">${esc(r.horaInicio)}</span>` },
+      { label: 'Fin', render: (r) => `<span class="font-bold">${esc(r.horaFin)}</span>` },
+      { label: 'Duración', render: (r) => {
+          const [h1, m1] = r.horaInicio.split(':').map(Number);
+          const [h2, m2] = r.horaFin.split(':').map(Number);
+          const mins = (h2 * 60 + m2) - (h1 * 60 + m1);
+          return `<span class="text-ink-soft">${mins} min</span>`;
+        },
+      },
+    ],
+    fields: [
+      { name: 'diaSemana', label: 'Día de la semana', type: 'select', required: true, options: ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'] },
+      { name: 'horaInicio', label: 'Hora de inicio', type: 'text', placeholder: '07:00', required: true },
+      { name: 'horaFin', label: 'Hora de fin', type: 'text', placeholder: '08:00', required: true },
+    ],
+  });
+
+  // Asignaciones de clase
+  createCrudPage({
+    root: '#crud-asignaciones',
+    endpoint: '/horarios/asignaciones',
+    title: 'Asignaciones de Clase',
+    description: 'Relaciona grupo, materia, profesor, horario y aula.',
+    createLabel: 'Nueva asignación',
+    searchKeys: [],
+    emptyText: 'No hay asignaciones registradas.',
+    columns: [
+      { label: 'ID', render: (r) => `<span class="font-mono text-xs">#${esc(r.id)}</span>` },
+      { label: 'Grupo', render: (r) => badge(`G${r.idGrupo}`) },
+      { label: 'Materia', render: (r) => badge(`M${r.idMateria}`) },
+      { label: 'Profesor', render: (r) => badge(`P${r.idProfesor}`) },
+      { label: 'Horario', render: (r) => badge(`H${r.idHorario}`) },
+      { label: 'Aula', render: (r) => badge(`A${r.idAula}`) },
+      { label: 'Modalidad', render: (r) => badge(r.modalidad) },
+      { label: 'Estado', render: (r) => badge(r.estado) },
+    ],
+    fields: [
+      {
+        name: 'idGrupo', label: 'Grupo', type: 'select', required: true,
+        options: async () => (await apiGet('/grupos') || []).map((g) => ({ value: g.id, label: g.nombre })),
+      },
+      {
+        name: 'idMateria', label: 'Materia', type: 'select', required: true,
+        options: async () => (await apiGet('/materias') || []).map((m) => ({ value: m.id, label: m.nombreMateria })),
+      },
+      {
+        name: 'idProfesor', label: 'Profesor', type: 'select', required: true,
+        options: async () => (await apiGet('/profesores') || []).map((p) => ({ value: p.id, label: `${p.nombres} ${p.apellidos}` })),
+      },
+      {
+        name: 'idHorario', label: 'Bloque horario', type: 'select', required: true,
+        options: async () => (await apiGet('/horarios/bloques') || []).map((b) => ({ value: b.id, label: `${b.diaSemana} ${b.horaInicio}-${b.horaFin}` })),
+      },
+      {
+        name: 'idAula', label: 'Aula', type: 'select', required: true,
+        options: async () => (await apiGet('/horarios/aulas') || []).map((a) => ({ value: a.id, label: a.nombre })),
+      },
+      { name: 'modalidad', label: 'Modalidad', type: 'select', options: ['PRESENCIAL', 'VIRTUAL', 'HIBRIDA'] },
+      { name: 'observaciones', label: 'Observaciones', type: 'textarea', span: true },
+    ],
+  });
+</script>

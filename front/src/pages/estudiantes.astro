@@ -1,0 +1,55 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Estudiantes" active="estudiantes">
+  <div id="crud-root"></div>
+</Layout>
+
+<script>
+  import { createCrudPage, badge, fmtDate, fullName } from '../lib/crud';
+  import { esc, AVATAR_COLORS, initials } from '../lib/ui';
+
+  createCrudPage({
+    root: '#crud-root',
+    endpoint: '/estudiantes',
+    title: 'Estudiantes',
+    description: 'Consulta y registra estudiantes del sistema escolar.',
+    createLabel: 'Nuevo estudiante',
+    searchKeys: ['nombres', 'apellidos', 'codigoEstudiante', 'dui', 'nie'],
+    emptyText: 'No hay estudiantes registrados todavía.',
+    columns: [
+      {
+        label: 'Estudiante',
+        render: (r) => `
+          <div class="flex items-center gap-3">
+            <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${AVATAR_COLORS[(r.id || 0) % 5]} text-xs font-extrabold text-white">${initials(r.nombres, r.apellidos)}</div>
+            <div>
+              <p class="font-bold text-ink">${fullName(r)}</p>
+              <p class="text-xs text-ink-soft">${esc(r.codigoEstudiante || '—')}</p>
+            </div>
+          </div>`,
+      },
+      { label: 'Género', render: (r) => badge(r.genero) },
+      { label: 'Nacimiento', render: (r) => fmtDate(r.fechaNacimiento) },
+      { label: 'DUI', render: (r) => esc(r.dui || '—') },
+      { label: 'NIE', render: (r) => esc(r.nie || '—') },
+      { label: 'Teléfono', render: (r) => esc(r.telefono || '—') },
+      { label: 'Estado', render: (r) => badge(r.estado) },
+    ],
+    fields: [
+      { name: 'codigoEstudiante', label: 'Código', placeholder: 'EST-001', required: true },
+      { name: 'nombres', label: 'Nombres', required: true },
+      { name: 'apellidos', label: 'Apellidos', required: true },
+      { name: 'fechaNacimiento', label: 'Fecha de nacimiento', type: 'date' },
+      { name: 'genero', label: 'Género', type: 'select', options: ['MASCULINO', 'FEMENINO', 'OTRO'] },
+      { name: 'nacionalidad', label: 'Nacionalidad', placeholder: 'Salvadoreño' },
+      { name: 'dui', label: 'DUI' },
+      { name: 'nie', label: 'NIE' },
+      { name: 'correoElectronico', label: 'Correo electrónico', type: 'email' },
+      { name: 'telefono', label: 'Teléfono', type: 'tel' },
+      { name: 'direccion', label: 'Dirección', span: true },
+      { name: 'fechaIngreso', label: 'Fecha de ingreso', type: 'date' },
+    ],
+  });
+</script>

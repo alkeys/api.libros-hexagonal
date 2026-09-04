@@ -1,0 +1,85 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Niveles y Grados" active="niveles">
+  <div class="fade-in space-y-6">
+    <div id="crud-niveles"></div>
+    <div id="crud-grados"></div>
+    <div id="crud-secciones"></div>
+  </div>
+</Layout>
+
+<script>
+  import { createCrudPage, badge } from '../lib/crud';
+  import { esc } from '../lib/ui';
+  import { apiGet } from '../lib/api';
+
+  // Niveles educativos
+  createCrudPage({
+    root: '#crud-niveles',
+    endpoint: '/niveles',
+    title: 'Niveles Educativos',
+    description: 'Niveles como Inicial, Básica y Media.',
+    createLabel: 'Nuevo nivel',
+    searchKeys: ['nombre'],
+    emptyText: 'No hay niveles registrados.',
+    columns: [
+      { label: 'Nivel', render: (r) => `<p class="font-bold text-ink">${esc(r.nombre)}</p>` },
+      { label: 'Descripción', render: (r) => `<span class="text-ink-soft">${esc(r.descripcion || '—')}</span>` },
+    ],
+    fields: [
+      { name: 'nombre', label: 'Nombre', required: true },
+      { name: 'descripcion', label: 'Descripción', type: 'textarea', span: true },
+    ],
+  });
+
+  // Grados (con nivel asociado)
+  createCrudPage({
+    root: '#crud-grados',
+    endpoint: '/niveles/grados',
+    title: 'Grados',
+    description: 'Grados escolares asociados a un nivel.',
+    createLabel: 'Nuevo grado',
+    searchKeys: ['nombreGrado'],
+    emptyText: 'No hay grados registrados.',
+    columns: [
+      { label: 'Grado', render: (r) => `<p class="font-bold text-ink">${esc(r.nombreGrado)}</p>` },
+      { label: 'ID Nivel', render: (r) => badge(`Nivel ${r.idNivel}`) },
+      { label: 'Descripción', render: (r) => `<span class="text-ink-soft">${esc(r.descripcion || '—')}</span>` },
+    ],
+    fields: [
+      {
+        name: 'idNivel',
+        label: 'Nivel educativo',
+        type: 'select',
+        required: true,
+        options: async () => {
+          const niveles = await apiGet('/niveles');
+          return niveles.map((n) => ({ value: n.id, label: n.nombre }));
+        },
+      },
+      { name: 'nombreGrado', label: 'Nombre del grado', placeholder: 'Primer Grado', required: true },
+      { name: 'descripcion', label: 'Descripción', type: 'textarea', span: true },
+    ],
+  });
+
+  // Secciones
+  createCrudPage({
+    root: '#crud-secciones',
+    endpoint: '/niveles/secciones',
+    title: 'Secciones',
+    description: 'Secciones de cada grado (A, B, C…).',
+    createLabel: 'Nueva sección',
+    searchKeys: ['nombre'],
+    emptyText: 'No hay secciones registradas.',
+    columns: [
+      { label: 'Sección', render: (r) => `<span class="inline-flex size-8 items-center justify-center rounded-lg bg-brand-50 font-extrabold text-brand-700">${esc(r.nombre)}</span>` },
+      { label: 'Descripción', render: (r) => `<span class="text-ink-soft">${esc(r.descripcion || '—')}</span>` },
+    ],
+    fields: [
+      { name: 'nombre', label: 'Nombre', placeholder: 'A', required: true },
+      { name: 'descripcion', label: 'Descripción', span: true },
+    ],
+  });
+</script>

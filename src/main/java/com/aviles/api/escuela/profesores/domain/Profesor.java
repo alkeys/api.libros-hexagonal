@@ -33,4 +33,10 @@ public record Profesor(
         return new Profesor(null, codigoProfesor, nombres, apellidos, null, especialidad, null, null, null,
                 null, "ACTIVO", null, OffsetDateTime.now());
     }
+
+    public static Profesor nuevo(String codigoProfesor, String nombres, String apellidos, String dui,
+                                  String especialidad, String correoElectronico, String telefono, String direccion) {
+        return new Profesor(null, codigoProfesor, nombres, apellidos, dui, especialidad, correoElectronico,
+                telefono, direccion, null, "ACTIVO", null, OffsetDateTime.now());
+    }
 }

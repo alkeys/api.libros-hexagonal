@@ -1,0 +1,43 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Representantes" active="representantes">
+  <div id="crud-root"></div>
+</Layout>
+
+<script>
+  import { createCrudPage, badge, fullName } from '../lib/crud';
+  import { esc, AVATAR_COLORS, initials } from '../lib/ui';
+
+  createCrudPage({
+    root: '#crud-root',
+    endpoint: '/representantes',
+    title: 'Representantes',
+    description: 'Padres, madres o tutores de los estudiantes.',
+    createLabel: 'Nuevo representante',
+    searchKeys: ['nombres', 'apellidos', 'dui', 'telefono'],
+    emptyText: 'No hay representantes registrados todavía.',
+    columns: [
+      {
+        label: 'Representante',
+        render: (r) => `
+          <div class="flex items-center gap-3">
+            <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${AVATAR_COLORS[(r.id || 0) % 5]} text-xs font-extrabold text-white">${initials(r.nombres, r.apellidos)}</div>
+            <p class="font-bold text-ink">${fullName(r)}</p>
+          </div>`,
+      },
+      { label: 'DUI', render: (r) => esc(r.dui || '—') },
+      { label: 'Correo', render: (r) => esc(r.correoElectronico || '—') },
+      { label: 'Teléfono', render: (r) => esc(r.telefono || '—') },
+      { label: 'Estado', render: (r) => badge(r.estado) },
+    ],
+    fields: [
+      { name: 'nombres', label: 'Nombres', required: true },
+      { name: 'apellidos', label: 'Apellidos', required: true },
+      { name: 'dui', label: 'DUI' },
+      { name: 'correoElectronico', label: 'Correo electrónico', type: 'email' },
+      { name: 'telefono', label: 'Teléfono', type: 'tel' },
+    ],
+  });
+</script>

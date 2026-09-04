@@ -1,6 +1,7 @@
 package com.aviles.api.escuela.profesores.infra.adapter.out.persistence;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
@@ -25,6 +26,12 @@ public class JpaProfesorAdapter implements ProfesorRepositoryPort, DepartamentoR
 
     @Override
     public List<Profesor> findAll() { return profesorRepo.findAll().stream().map(this::toDomainProfesor).collect(Collectors.toList()); }
+
+    @Override
+    public Optional<Profesor> findById(Long id) { return profesorRepo.findById(id).map(this::toDomainProfesor); }
+
+    @Override
+    public void deleteById(Long id) { profesorRepo.deleteById(id); }
 
     @Override
     public Departamento save(Departamento departamento) { return toDomainDepartamento(departamentoRepo.save(toJpaDepartamento(departamento))); }

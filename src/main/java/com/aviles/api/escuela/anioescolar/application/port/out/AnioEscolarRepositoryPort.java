@@ -10,5 +10,6 @@ import com.aviles.api.escuela.anioescolar.domain.AnioEscolar;
 public interface AnioEscolarRepositoryPort {
     AnioEscolar save(AnioEscolar anioEscolar);
     List<AnioEscolar> findAll();
-    Optional<AnioEscolar> findById(Long id);
+    Optional<AnioEscolar> findAnioEscolarById(Long id);
+    void deleteAnioEscolarById(Long id);
 }

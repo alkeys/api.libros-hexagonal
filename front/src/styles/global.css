@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Paleta principal: violeta */
+  --color-brand-50: #f3f1ff;
+  --color-brand-100: #eae5ff;
+  --color-brand-200: #d9cfff;
+  --color-brand-300: #bfa9ff;
+  --color-brand-400: #a478ff;
+  --color-brand-500: #8b4dff;
+  --color-brand-600: #7c28f7;
+  --color-brand-700: #6d17e0;
+  --color-brand-800: #5b14b8;
+  --color-brand-900: #4b1296;
+  --color-brand-950: #2e0766;
+
+  /* Acentos: fucsia / coral */
+  --color-flare-400: #f472b6;
+  --color-flare-500: #ec4899;
+  --color-flare-600: #db2777;
+
+  --color-surface: #f7f6fc;
+  --color-ink: #191431;
+  --color-ink-soft: #4d4765;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-surface font-sans text-ink antialiased;
+  }
+
+  ::selection {
+    @apply bg-brand-200 text-brand-900;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-slate-100/80 bg-white shadow-[0_1px_2px_rgba(25,20,49,.05),0_10px_30px_-14px_rgba(25,20,49,.14)];
+  }
+
+  .btn-primary {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-flare-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand-600/25 transition hover:shadow-xl hover:shadow-brand-600/30 hover:brightness-110 active:scale-[.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-soft {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand-50 px-4 py-2.5 text-sm font-bold text-brand-700 transition hover:bg-brand-100 active:scale-[.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300;
+  }
+
+  .btn-ghost {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-ink-soft transition hover:border-slate-300 hover:text-ink active:scale-[.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-200;
+  }
+
+  .btn-row {
+    @apply mr-1.5 inline-flex cursor-pointer items-center rounded-lg bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700 transition hover:bg-brand-100;
+  }
+
+  .btn-danger {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-rose-600/25 transition hover:shadow-xl hover:shadow-rose-600/30 hover:brightness-110 active:scale-[.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-icon {
+    @apply inline-flex cursor-pointer items-center justify-center rounded-lg p-1.5 text-slate-400 transition hover:bg-brand-50 hover:text-brand-700 active:scale-95;
+  }
+
+  .btn-icon-danger {
+    @apply inline-flex cursor-pointer items-center justify-center rounded-lg p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 active:scale-95;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-slate-400 transition focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100;
+  }
+
+  .label {
+    @apply mb-1.5 block text-[11px] font-bold tracking-wider text-ink-soft uppercase;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide uppercase;
+  }
+
+  .badge::before {
+    content: "";
+    @apply size-1.5 rounded-full bg-current;
+  }
+
+  .th {
+    @apply px-4 py-3 text-left text-[11px] font-bold tracking-wider text-ink-soft uppercase;
+  }
+
+  .td {
+    @apply px-4 py-3 text-sm text-ink;
+  }
+
+  .skeleton {
+    @apply animate-pulse rounded-lg bg-slate-200/70;
+  }
+
+  .modal-anim {
+    animation: modalIn 0.22s ease;
+  }
+
+  .fade-in {
+    animation: fadeIn 0.3s ease both;
+  }
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scrollbar sutil */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d6d3e8;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b9b3d9;
+  background-clip: content-box;
+  border: 2px solid transparent;
+}

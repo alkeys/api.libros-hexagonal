@@ -1,0 +1,50 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Profesores" active="profesores">
+  <div id="crud-root"></div>
+</Layout>
+
+<script>
+  import { createCrudPage, badge, fullName } from '../lib/crud';
+  import { esc, AVATAR_COLORS, initials } from '../lib/ui';
+
+  createCrudPage({
+    root: '#crud-root',
+    endpoint: '/profesores',
+    title: 'Profesores',
+    description: 'Consulta y registra profesores de la institución.',
+    createLabel: 'Nuevo profesor',
+    searchKeys: ['nombres', 'apellidos', 'codigoProfesor', 'especialidad', 'dui'],
+    emptyText: 'No hay profesores registrados todavía.',
+    columns: [
+      {
+        label: 'Profesor',
+        render: (r) => `
+          <div class="flex items-center gap-3">
+            <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${AVATAR_COLORS[(r.id || 0) % 5]} text-xs font-extrabold text-white">${initials(r.nombres, r.apellidos)}</div>
+            <div>
+              <p class="font-bold text-ink">${fullName(r)}</p>
+              <p class="text-xs text-ink-soft">${esc(r.codigoProfesor || '—')}</p>
+            </div>
+          </div>`,
+      },
+      { label: 'Especialidad', render: (r) => esc(r.especialidad || '—') },
+      { label: 'DUI', render: (r) => esc(r.dui || '—') },
+      { label: 'Correo', render: (r) => esc(r.correoElectronico || '—') },
+      { label: 'Teléfono', render: (r) => esc(r.telefono || '—') },
+      { label: 'Estado', render: (r) => badge(r.estado) },
+    ],
+    fields: [
+      { name: 'codigoProfesor', label: 'Código', placeholder: 'PRO-001', required: true },
+      { name: 'nombres', label: 'Nombres', required: true },
+      { name: 'apellidos', label: 'Apellidos', required: true },
+      { name: 'dui', label: 'DUI' },
+      { name: 'especialidad', label: 'Especialidad' },
+      { name: 'correoElectronico', label: 'Correo electrónico', type: 'email' },
+      { name: 'telefono', label: 'Teléfono', type: 'tel' },
+      { name: 'direccion', label: 'Dirección', span: true },
+    ],
+  });
+</script>

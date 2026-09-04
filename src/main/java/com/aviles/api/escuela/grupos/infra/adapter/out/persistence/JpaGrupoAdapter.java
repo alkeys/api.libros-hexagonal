@@ -1,6 +1,7 @@
 package com.aviles.api.escuela.grupos.infra.adapter.out.persistence;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
@@ -24,6 +25,16 @@ public class JpaGrupoAdapter implements GrupoRepositoryPort {
     @Override
     public List<Grupo> findAll() {
         return repository.findAll().stream().map(this::toDomain).collect(Collectors.toList());
+    }
+
+    @Override
+    public Optional<Grupo> findById(Long id) {
+        return repository.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public void deleteById(Long id) {
+        repository.deleteById(id);
     }
 
     private Grupo toDomain(JpaGrupo j) {

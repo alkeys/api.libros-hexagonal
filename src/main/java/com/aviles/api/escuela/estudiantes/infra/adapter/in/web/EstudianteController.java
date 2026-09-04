@@ -1,7 +1,6 @@
 package com.aviles.api.escuela.estudiantes.infra.adapter.in.web;
 
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,15 +22,20 @@ public class EstudianteController {
     private final CreateEstudianteCase createEstudianteCase;
     private final GetAllEstudiantesCase getAllEstudiantesCase;
     private final GetEstudianteByIdCase getEstudianteByIdCase;
+    private final UpdateEstudianteCase updateEstudianteCase;
+    private final DeleteEstudianteCase deleteEstudianteCase;
     private final CreateMatriculaCase createMatriculaCase;
     private final GetMatriculasByGrupoCase getMatriculasByGrupoCase;
 
     public EstudianteController(CreateEstudianteCase createEstudianteCase, GetAllEstudiantesCase getAllEstudiantesCase,
-                                 GetEstudianteByIdCase getEstudianteByIdCase, CreateMatriculaCase createMatriculaCase,
+                                 GetEstudianteByIdCase getEstudianteByIdCase, UpdateEstudianteCase updateEstudianteCase,
+                                 DeleteEstudianteCase deleteEstudianteCase, CreateMatriculaCase createMatriculaCase,
                                  GetMatriculasByGrupoCase getMatriculasByGrupoCase) {
         this.createEstudianteCase = createEstudianteCase;
         this.getAllEstudiantesCase = getAllEstudiantesCase;
         this.getEstudianteByIdCase = getEstudianteByIdCase;
+        this.updateEstudianteCase = updateEstudianteCase;
+        this.deleteEstudianteCase = deleteEstudianteCase;
         this.createMatriculaCase = createMatriculaCase;
         this.getMatriculasByGrupoCase = getMatriculasByGrupoCase;
     }
@@ -40,7 +44,10 @@ public class EstudianteController {
     @PostMapping
     public EstudianteResponse create(@RequestBody EstudianteRequest request) {
         Estudiante estudiante = Estudiante.nuevo(request.codigoEstudiante(), request.nombres(), request.apellidos(),
-                request.fechaNacimiento() != null ? LocalDate.parse(request.fechaNacimiento()) : null, request.genero());
+                request.fechaNacimiento() != null ? LocalDate.parse(request.fechaNacimiento()) : null, request.genero(),
+                request.nacionalidad(), request.dui(), request.nie(), request.correoElectronico(),
+                request.telefono(), request.direccion(),
+                request.fechaIngreso() != null ? LocalDate.parse(request.fechaIngreso()) : null);
         return toResponse(createEstudianteCase.create(estudiante));
     }
 
@@ -54,6 +61,24 @@ public class EstudianteController {
     @GetMapping("/{id}")
     public EstudianteResponse getById(@PathVariable Long id) {
         return getEstudianteByIdCase.getById(new Id(id)).map(this::toResponse).orElse(null);
+    }
+
+    @Operation(summary = "Actualizar estudiante")
+    @PutMapping("/{id}")
+    public EstudianteResponse update(@PathVariable Long id, @RequestBody EstudianteRequest request) {
+        Estudiante estudiante = new Estudiante(new Id(id), request.codigoEstudiante(), request.nombres(), request.apellidos(),
+                request.fechaNacimiento() != null ? LocalDate.parse(request.fechaNacimiento()) : null, request.genero(),
+                request.nacionalidad(), request.dui(), request.nie(), request.correoElectronico(),
+                request.telefono(), request.direccion(),
+                request.fechaIngreso() != null ? LocalDate.parse(request.fechaIngreso()) : null,
+                null, null, null, null);
+        return toResponse(updateEstudianteCase.update(estudiante));
+    }
+
+    @Operation(summary = "Eliminar estudiante")
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        deleteEstudianteCase.delete(new Id(id));
     }
 
     @Operation(summary = "Crear matrícula")

@@ -1,0 +1,43 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Materias" active="materias">
+  <div id="crud-root"></div>
+</Layout>
+
+<script>
+  import { createCrudPage, badge } from '../lib/crud';
+  import { esc } from '../lib/ui';
+
+  createCrudPage({
+    root: '#crud-root',
+    endpoint: '/materias',
+    title: 'Materias',
+    description: 'Catálogo de materias o asignaturas.',
+    createLabel: 'Nueva materia',
+    searchKeys: ['codigoMateria', 'nombreMateria'],
+    emptyText: 'No hay materias registradas todavía.',
+    columns: [
+      {
+        label: 'Materia',
+        render: (r) => `
+          <div>
+            <p class="font-bold text-ink">${esc(r.nombreMateria)}</p>
+            <p class="text-xs text-ink-soft">${esc(r.codigoMateria || '—')}</p>
+          </div>`,
+      },
+      { label: 'Tipo', render: (r) => badge(r.tipo) },
+      { label: 'Horas/semana', render: (r) => `<span class="font-bold">${esc(r.horasSemanales ?? '—')}</span>` },
+      { label: 'Descripción', render: (r) => `<span class="text-ink-soft">${esc(r.descripcion || '—')}</span>` },
+      { label: 'Estado', render: (r) => badge(r.estado) },
+    ],
+    fields: [
+      { name: 'codigoMateria', label: 'Código', placeholder: 'MAT-001', required: true },
+      { name: 'nombreMateria', label: 'Nombre', required: true },
+      { name: 'descripcion', label: 'Descripción', type: 'textarea', span: true },
+      { name: 'horasSemanales', label: 'Horas semanales', type: 'number' },
+      { name: 'tipo', label: 'Tipo', type: 'select', options: ['OBLIGATORIA', 'OPTATIVA', 'TALLER', 'EXTRACURRICULAR'] },
+    ],
+  });
+</script>

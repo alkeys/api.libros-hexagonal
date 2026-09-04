@@ -1,0 +1,243 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Años Escolares" active="anios">
+  <div class="fade-in space-y-6">
+    <div id="crud-anios"></div>
+    <div id="periodos"></div>
+  </div>
+</Layout>
+
+<script>
+  import { createCrudPage, badge, fmtDate } from '../lib/crud';
+  import { esc, toast, openModal } from '../lib/ui';
+  import { apiGet, apiPost, apiPut, apiDelete } from '../lib/api';
+
+  // Años escolares
+  createCrudPage({
+    root: '#crud-anios',
+    endpoint: '/anios-escolares',
+    title: 'Años Escolares',
+    description: 'Ciclos lectivos de la institución.',
+    createLabel: 'Nuevo año escolar',
+    searchKeys: ['nombre'],
+    emptyText: 'No hay años escolares registrados.',
+    columns: [
+      {
+        label: 'Año',
+        render: (r) => `
+          <div>
+            <p class="font-bold text-ink">${esc(r.nombre)}</p>
+            <p class="text-xs text-ink-soft">Ciclo ${esc(r.anio)}</p>
+          </div>`,
+      },
+      { label: 'Inicio', render: (r) => fmtDate(r.fechaInicio) },
+      { label: 'Fin', render: (r) => fmtDate(r.fechaFin) },
+      { label: 'Estado', render: (r) => badge(r.estado) },
+    ],
+    fields: [
+      { name: 'nombre', label: 'Nombre', placeholder: 'Año Escolar 2026', required: true },
+      { name: 'anio', label: 'Año', type: 'number', required: true },
+      { name: 'fechaInicio', label: 'Fecha de inicio', type: 'date', required: true },
+      { name: 'fechaFin', label: 'Fecha de fin', type: 'date', required: true },
+    ],
+  });
+
+  // Períodos por año escolar
+  const perRoot = document.getElementById('periodos');
+  let anios = [];
+
+  async function renderPeriodos() {
+    try {
+      anios = (await apiGet('/anios-escolares')) || [];
+    } catch {
+      anios = [];
+    }
+    const anioOptions = anios
+      .map((a) => `<option value="${esc(a.id)}">${esc(a.nombre)} (${esc(a.anio)})</option>`)
+      .join('');
+
+    perRoot.innerHTML = `
+      <div class="card fade-in overflow-hidden">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
+          <div>
+            <h2 class="text-xl font-extrabold text-ink">Períodos Académicos</h2>
+            <p class="mt-0.5 text-sm text-ink-soft">Trimestres o períodos de cada año escolar.</p>
+          </div>
+          <button id="per-new" class="btn-primary">+ Nuevo período</button>
+        </div>
+        <div class="px-6 py-5">
+          <label class="label">Año escolar</label>
+          <select id="per-anio" class="input max-w-md">${anioOptions}</select>
+          <div id="per-table" class="mt-4"></div>
+        </div>
+      </div>`;
+
+    const sel = perRoot.querySelector('#per-anio');
+    const table = perRoot.querySelector('#per-table');
+
+    async function loadTable() {
+      const id = sel.value;
+      if (!id) {
+        table.innerHTML = '<p class="text-sm font-semibold text-ink-soft">Primero crea un año escolar.</p>';
+        return;
+      }
+      table.innerHTML = Array.from({ length: 3 }, () => '<div class="skeleton mb-2 h-10 w-full"></div>').join('');
+      try {
+        const periodos = (await apiGet(`/anios-escolares/${id}/periodos`)) || [];
+        if (!periodos.length) {
+          table.innerHTML = '<p class="text-sm font-semibold text-ink-soft">Sin períodos para este año escolar.</p>';
+          return;
+        }
+        table.innerHTML = `
+          <div class="overflow-x-auto rounded-xl border border-slate-100">
+            <table class="w-full min-w-[480px]">
+              <thead><tr class="bg-slate-50/80">
+                <th class="th">Período</th><th class="th">N°</th><th class="th">Inicio</th><th class="th">Fin</th><th class="th">Estado</th><th class="th">Acciones</th>
+              </tr></thead>
+              <tbody>
+                ${periodos.map((p) => `
+                  <tr class="border-t border-slate-50 transition hover:bg-brand-50/40">
+                    <td class="td font-bold">${esc(p.nombre)}</td>
+                    <td class="td"><span class="inline-flex size-7 items-center justify-center rounded-lg bg-brand-50 font-extrabold text-brand-700">${esc(p.numeroPeriodo)}</span></td>
+                    <td class="td">${fmtDate(p.fechaInicio)}</td>
+                    <td class="td">${fmtDate(p.fechaFin)}</td>
+                    <td class="td">${badge(p.estado)}</td>
+                    <td class="td">
+                      <div class="flex items-center gap-1">
+                        <button data-edit-per="${esc(p.id)}" class="btn-icon" title="Editar período">
+                          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
+                        </button>
+                        <button data-del-per="${esc(p.id)}" class="btn-icon-danger" title="Eliminar período">
+                          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>`;
+
+        table.querySelectorAll('[data-edit-per]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const p = periodos.find((x) => String(x.id) === btn.dataset.editPer);
+            if (!p) return;
+            openModal({
+              title: 'Editar período académico',
+              size: 'max-w-md',
+              submitLabel: 'Guardar cambios',
+              body: `
+                <div>
+                  <label class="label">Año escolar *</label>
+                  <select name="idAnioEscolar" class="input" required>
+                    ${anios.map((a) => `<option value="${esc(a.id)}" ${String(a.id) === String(p.idAnioEscolar) ? 'selected' : ''}>${esc(a.nombre)}</option>`).join('')}
+                  </select>
+                </div>
+                <div>
+                  <label class="label">Número *</label>
+                  <input name="numeroPeriodo" type="number" min="1" class="input" value="${esc(p.numeroPeriodo)}" required />
+                </div>
+                <div>
+                  <label class="label">Nombre *</label>
+                  <input name="nombre" class="input" placeholder="Primer Trimestre" value="${esc(p.nombre)}" required />
+                </div>
+                <div>
+                  <label class="label">Fecha inicio *</label>
+                  <input name="fechaInicio" type="date" class="input" value="${esc(p.fechaInicio)}" required />
+                </div>
+                <div>
+                  <label class="label">Fecha fin *</label>
+                  <input name="fechaFin" type="date" class="input" value="${esc(p.fechaFin)}" required />
+                </div>`,
+              onSubmit: async (form) => {
+                await apiPut(`/anios-escolares/periodos/${p.id}`, {
+                  idAnioEscolar: Number(form.get('idAnioEscolar')),
+                  numeroPeriodo: Number(form.get('numeroPeriodo')),
+                  nombre: form.get('nombre'),
+                  fechaInicio: form.get('fechaInicio'),
+                  fechaFin: form.get('fechaFin'),
+                });
+                toast('Período actualizado correctamente', 'success');
+                loadTable();
+              },
+            });
+          });
+        });
+
+        table.querySelectorAll('[data-del-per]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const perId = btn.dataset.delPer;
+            openModal({
+              title: 'Eliminar período',
+              size: 'max-w-md',
+              submitLabel: 'Eliminar',
+              danger: true,
+              body: `
+                <div class="sm:col-span-2 py-2 text-center">
+                  <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+                  </div>
+                  <p class="mt-3 text-sm font-semibold text-ink">¿Seguro que deseas eliminar este período?</p>
+                  <p class="mt-1 text-xs text-ink-soft">Esta acción no se puede deshacer.</p>
+                </div>`,
+              onSubmit: async () => {
+                await apiDelete(`/anios-escolares/periodos/${perId}`);
+                toast('Período eliminado correctamente', 'success');
+                loadTable();
+              },
+            });
+          });
+        });
+      } catch {
+        table.innerHTML = '<p class="text-sm font-semibold text-rose-600">No se pudo cargar.</p>';
+      }
+    }
+
+    sel.addEventListener('change', loadTable);
+    perRoot.querySelector('#per-new').addEventListener('click', () => {
+      openModal({
+        title: 'Nuevo período académico',
+        size: 'max-w-md',
+        body: `
+          <div>
+            <label class="label">Año escolar *</label>
+            <select name="idAnioEscolar" class="input" required>
+              ${anios.map((a) => `<option value="${esc(a.id)}">${esc(a.nombre)}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label class="label">Número *</label>
+            <input name="numeroPeriodo" type="number" min="1" class="input" required />
+          </div>
+          <div>
+            <label class="label">Nombre *</label>
+            <input name="nombre" class="input" placeholder="Primer Trimestre" required />
+          </div>
+          <div>
+            <label class="label">Fecha inicio *</label>
+            <input name="fechaInicio" type="date" class="input" required />
+          </div>
+          <div>
+            <label class="label">Fecha fin *</label>
+            <input name="fechaFin" type="date" class="input" required />
+          </div>`,
+        onSubmit: async (form) => {
+          await apiPost('/anios-escolares/periodos', {
+            idAnioEscolar: Number(form.get('idAnioEscolar')),
+            numeroPeriodo: Number(form.get('numeroPeriodo')),
+            nombre: form.get('nombre'),
+            fechaInicio: form.get('fechaInicio'),
+            fechaFin: form.get('fechaFin'),
+          });
+          toast('Período creado correctamente', 'success');
+          loadTable();
+        },
+      });
+    });
+
+    if (sel.value) loadTable();
+  }
+
+  renderPeriodos();
+</script>

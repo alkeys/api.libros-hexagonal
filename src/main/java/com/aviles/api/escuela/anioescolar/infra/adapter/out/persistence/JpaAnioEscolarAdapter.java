@@ -39,8 +39,13 @@ public class JpaAnioEscolarAdapter implements AnioEscolarRepositoryPort, Periodo
     }
 
     @Override
-    public Optional<AnioEscolar> findById(Long id) {
+    public Optional<AnioEscolar> findAnioEscolarById(Long id) {
         return anioRepository.findById(id).map(this::toDomainAnio);
+    }
+
+    @Override
+    public void deleteAnioEscolarById(Long id) {
+        anioRepository.deleteById(id);
     }
 
     // === PeriodoAcademico ===
@@ -56,6 +61,16 @@ public class JpaAnioEscolarAdapter implements AnioEscolarRepositoryPort, Periodo
     public List<PeriodoAcademico> findByAnioEscolar(Id idAnioEscolar) {
         return periodoRepository.findByIdAnioEscolar(idAnioEscolar.getValue()).stream()
                 .map(this::toDomainPeriodo).collect(Collectors.toList());
+    }
+
+    @Override
+    public Optional<PeriodoAcademico> findPeriodoById(Long id) {
+        return periodoRepository.findById(id).map(this::toDomainPeriodo);
+    }
+
+    @Override
+    public void deletePeriodoById(Long id) {
+        periodoRepository.deleteById(id);
     }
 
     // === Mappers ===
